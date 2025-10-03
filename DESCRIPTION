@@ -29,7 +29,8 @@ Suggests:
     rmarkdown,
     covr,
     withr,
-    httptest2
+    httptest2,
+    ggplot2
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 URL: https://github.com/jackmanners/sardine, https://jackmanners.github.io/sardine/
