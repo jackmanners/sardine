@@ -23,24 +23,39 @@ data platforms including Qualtrics, SurveyMonkey, and database connections.
 \section{Core Functions}{
 
 \itemize{
-\item{\code{\link{source_connection}}: Base connection class for all sources}
-\item{\code{\link{redcap_connection}}: Create a REDCap API connection}
-\item{\code{\link{redcap_connection_from_env}}: Create REDCap connection from environment}
-\item{\code{\link{test_connection}}: Test API connection (generic)}
-\item{\code{\link{load_env}}: Load environment configuration}
+\item{\code{\link{redcap_project}}: Create a REDCap project object (tests connection, caches data)}
+\item{\code{\link{redcap_project_from_env}}: Create REDCap project from environment variables}
+\item{\code{\link{load_env}}: Load environment configuration from .env file}
 \item{\code{\link{create_env_template}}: Create .env template file}
 }
 }
 
-\section{REDCap Functions}{
+\section{Data Access Functions}{
 
 \itemize{
-\item{\code{\link{redcap_export_records}}: Export records from REDCap}
-\item{\code{\link{redcap_import_records}}: Import records to REDCap}
-\item{\code{\link{redcap_metadata}}: Get project metadata}
-\item{\code{\link{redcap_export_arms}}: Export arms for longitudinal projects}
-\item{\code{\link{redcap_export_events}}: Export events for longitudinal projects}
-\item{\code{\link{redcap_export_instruments}}: Export instruments (forms)}
+\item{\code{\link{export_records}}: Export specific records or fields}
+\item{\code{\link{import_records}}: Import data to REDCap (warns about cache)}
+\item{\code{\link{export_instruments}}: Export form/instrument information}
+\item{\code{\link{export_events}}: Export events for longitudinal projects}
+\item{\code{\link{export_users}}: Export project user information}
+\item{\code{\link{export_instrument_event_mappings}}: Export instrument-event mappings}
+}
+}
+
+\section{Usage Pattern}{
+
+\preformatted{
+# Create project (connects and caches data)
+project <- redcap_project_from_env()
+
+# Access full cached data
+all_data <- project$data
+
+# Export specific fields
+demographics <- export_records(project, fields = c("age", "gender"))
+
+# View project information
+project$info()
 }
 }
 
@@ -48,6 +63,7 @@ data platforms including Qualtrics, SurveyMonkey, and database connections.
 Useful links:
 \itemize{
   \item \url{https://github.com/jackmanners/sardine}
+  \item \url{https://jackmanners.github.io/sardine/}
   \item Report bugs at \url{https://github.com/jackmanners/sardine/issues}
 }
 

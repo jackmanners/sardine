@@ -1,0 +1,506 @@
+---
+title: "REDCap Data Import"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{REDCap Data Import}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# REDCap Data Import with Sardine
+
+This vignette demonstrates how to import data into REDCap projects using the sardine package.
+
+## Setup
+
+```{r setup}
+library(sardine)
+library(dplyr)
+library(tibble)
+```
+
+## Project Setup
+
+First, create your REDCap project object:
+
+```{r project_setup, eval=FALSE}
+# Load environment and create project
+load_env()
+project <- redcap_project_from_env()
+```
+
+## Basic Data Import
+
+### Simple Record Import
+
+```{r basic_import, eval=FALSE}
+# Create new data to import
+new_records <- tibble(
+  record_id = c("101", "102", "103"),
+  age = c(25, 34, 28),
+  gender = c("Female", "Male", "Female"),
+  study_group = c("Treatment", "Control", "Treatment")
+)
+
+# Import the data
+result <- import_records(project, new_records)
+# Warning: Importing data to REDCap will make cached project data outdated
+# Info: Consider running project$refresh() after import to update cached data
+
+print(result)
+```
+
+### Understanding Import Results
+
+```{r import_results, eval=FALSE}
+# Import result shows what happened
+cat("Import completed:\n")
+cat("- Records processed:", result$count, "\n")
+
+# If return_content = "ids", you get the record IDs
+result_with_ids <- import_records(
+  project, 
+  new_records, 
+  return_content = "ids"
+)
+cat("Imported record IDs:", paste(result_with_ids, collapse = ", "), "\n")
+```
+
+## Cache Management After Import
+
+Importing data makes your cached project data outdated:
+
+```{r cache_management, eval=FALSE}
+# Before import - cached data count
+old_count <- nrow(project$data)
+cat("Records before import:", old_count, "\n")
+
+# Import new data
+import_records(project, new_records)
+
+# Cached data is now outdated
+current_cached_count <- nrow(project$data)
+cat("Cached records (outdated):", current_cached_count, "\n")
+
+# Refresh to get updated data
+project$refresh()
+new_count <- nrow(project$data)
+cat("Records after refresh:", new_count, "\n")
+cat("New records added:", new_count - old_count, "\n")
+```
+
+## Import Options
+
+### Overwrite Behavior
+
+```{r overwrite_behavior, eval=FALSE}
+# Normal behavior (default) - only overwrite blank fields
+import_records(
+  project, 
+  updated_data, 
+  overwrite_behavior = "normal"
+)
+
+# Overwrite all existing data
+import_records(
+  project, 
+  updated_data, 
+  overwrite_behavior = "overwrite"
+)
+```
+
+### Date Formats
+
+```{r date_formats, eval=FALSE}
+# Data with dates
+date_data <- tibble(
+  record_id = "104",
+  birth_date = "1990-03-15",
+  enrollment_date = "2025-01-01"
+)
+
+# Specify date format
+import_records(
+  project, 
+  date_data,
+  date_format = "YMD"  # Year-Month-Day
+)
+
+# Other formats: "MDY" (Month-Day-Year), "DMY" (Day-Month-Year)
+```
+
+## Updating Existing Records
+
+### Partial Updates
+
+```{r partial_updates, eval=FALSE}
+# Update specific fields for existing records
+updates <- tibble(
+  record_id = c("001", "002"),
+  follow_up_date = c("2025-03-01", "2025-03-15"),
+  status = c("Completed", "Active")
+)
+
+import_records(project, updates)
+project$refresh()
+
+# Verify updates
+updated_records <- export_records(
+  project,
+  records = c("001", "002"),
+  fields = c("record_id", "follow_up_date", "status")
+)
+print(updated_records)
+```
+
+### Bulk Updates
+
+```{r bulk_updates, eval=FALSE}
+# Update multiple records with calculated values
+existing_data <- project$data
+
+# Calculate BMI for all records
+bmi_updates <- existing_data %>%
+  filter(!is.na(height) & !is.na(weight)) %>%
+  mutate(
+    bmi = round(weight / (height/100)^2, 1)
+  ) %>%
+  select(record_id, bmi)
+
+# Import calculated BMI values
+import_records(project, bmi_updates)
+project$refresh()
+```
+
+## Working with Longitudinal Projects
+
+### Event-Specific Imports
+
+```{r longitudinal_import, eval=FALSE}
+# For longitudinal projects, include redcap_event_name
+longitudinal_data <- tibble(
+  record_id = c("001", "001", "002", "002"),
+  redcap_event_name = c("baseline_arm_1", "month_3_arm_1", "baseline_arm_1", "month_3_arm_1"),
+  weight = c(75.5, 73.2, 82.1, 80.8),
+  bp_systolic = c(120, 118, 135, 130)
+)
+
+import_records(project, longitudinal_data)
+project$refresh()
+```
+
+## Import Validation
+
+### Pre-Import Checks
+
+```{r pre_import_validation, eval=FALSE}
+# Function to validate data before import
+validate_import_data <- function(data, project) {
+  errors <- character()
+  warnings <- character()
+  
+  # Check required fields
+  if (!"record_id" %in% names(data)) {
+    errors <- c(errors, "record_id field is required")
+  }
+  
+  # Check for duplicate records
+  if (any(duplicated(data$record_id))) {
+    warnings <- c(warnings, "Duplicate record_ids found")
+  }
+  
+  # Check field names against project metadata
+  project_fields <- names(project$data)
+  unknown_fields <- setdiff(names(data), project_fields)
+  if (length(unknown_fields) > 0) {
+    warnings <- c(warnings, paste("Unknown fields:", paste(unknown_fields, collapse = ", ")))
+  }
+  
+  # Check for reasonable values (example for age)
+  if ("age" %in% names(data)) {
+    invalid_ages <- data$age < 0 | data$age > 120
+    if (any(invalid_ages, na.rm = TRUE)) {
+      warnings <- c(warnings, "Some age values seem unreasonable")
+    }
+  }
+  
+  list(errors = errors, warnings = warnings)
+}
+
+# Validate before import
+validation_result <- validate_import_data(new_records, project)
+
+if (length(validation_result$errors) > 0) {
+  cat("Errors (must fix):\n")
+  cat(paste("- ", validation_result$errors, collapse = "\n"), "\n")
+}
+
+if (length(validation_result$warnings) > 0) {
+  cat("Warnings (review):\n")
+  cat(paste("- ", validation_result$warnings, collapse = "\n"), "\n")
+}
+
+# Only import if no errors
+if (length(validation_result$errors) == 0) {
+  import_records(project, new_records)
+}
+```
+
+### Post-Import Verification
+
+```{r post_import_verification, eval=FALSE}
+# Verify import was successful
+verify_import <- function(project, imported_data) {
+  # Refresh cached data
+  project$refresh()
+  
+  # Check that records exist
+  imported_ids <- imported_data$record_id
+  existing_ids <- project$data$record_id
+  
+  missing_records <- setdiff(imported_ids, existing_ids)
+  
+  if (length(missing_records) > 0) {
+    cat("Warning: These records were not found after import:\n")
+    cat(paste(missing_records, collapse = ", "), "\n")
+  } else {
+    cat("Success: All records imported successfully\n")
+  }
+  
+  # Check field values for a sample
+  sample_record <- imported_data[1, ]
+  actual_record <- project$data[project$data$record_id == sample_record$record_id[1], ]
+  
+  cat("Sample verification for record", sample_record$record_id[1], ":\n")
+  for (field in names(sample_record)[-1]) {  # Skip record_id
+    if (field %in% names(actual_record)) {
+      expected <- sample_record[[field]][1]
+      actual <- actual_record[[field]][1]
+      match <- identical(expected, actual)
+      cat("  ", field, ": ", expected, " -> ", actual, " (", 
+          ifelse(match, "✓", "✗"), ")\n", sep = "")
+    }
+  }
+}
+
+verify_import(project, new_records)
+```
+
+## Common Import Scenarios
+
+### Importing Survey Data
+
+```{r survey_import, eval=FALSE}
+# Import survey responses
+survey_responses <- tibble(
+  record_id = c("001", "002", "003"),
+  satisfaction_score = c(8, 9, 7),
+  would_recommend = c(1, 1, 0),  # 1 = Yes, 0 = No
+  comments = c("Great experience", "Very helpful", "Could be better"),
+  survey_complete = c(2, 2, 2)  # 2 = Complete
+)
+
+import_records(project, survey_responses)
+project$refresh()
+```
+
+### Importing Calculated Fields
+
+```{r calculated_import, eval=FALSE}
+# Import derived/calculated values
+calculated_data <- project$data %>%
+  mutate(
+    # Calculate risk score
+    risk_score = case_when(
+      age >= 65 ~ 3,
+      age >= 50 ~ 2,
+      age >= 35 ~ 1,
+      TRUE ~ 0
+    ) + case_when(
+      smoking_status == "Current" ~ 2,
+      smoking_status == "Former" ~ 1,
+      TRUE ~ 0
+    ),
+    # Categorize BMI
+    bmi_category = case_when(
+      bmi < 18.5 ~ "Underweight",
+      bmi < 25 ~ "Normal",
+      bmi < 30 ~ "Overweight",
+      TRUE ~ "Obese"
+    )
+  ) %>%
+  select(record_id, risk_score, bmi_category)
+
+import_records(project, calculated_data)
+project$refresh()
+```
+
+### Importing External Data
+
+```{r external_import, eval=FALSE}
+# Import data from external sources (CSV, database, etc.)
+# Example: Lab results from external system
+external_data <- read.csv("lab_results.csv") %>%
+  # Match to REDCap record IDs
+  rename(record_id = patient_id) %>%
+  # Select and rename fields to match REDCap
+  select(
+    record_id,
+    hemoglobin = hgb_value,
+    cholesterol = chol_total,
+    lab_date = collection_date
+  ) %>%
+  # Format dates
+  mutate(lab_date = format(as.Date(lab_date), "%Y-%m-%d"))
+
+# Validate before import
+validation <- validate_import_data(external_data, project)
+if (length(validation$errors) == 0) {
+  import_records(project, external_data)
+  project$refresh()
+}
+```
+
+## Error Handling
+
+### Handling Import Failures
+
+```{r error_handling, eval=FALSE}
+# Robust import with error handling
+safe_import <- function(project, data, max_retries = 3) {
+  for (attempt in 1:max_retries) {
+    tryCatch({
+      result <- import_records(project, data)
+      cat("Import successful on attempt", attempt, "\n")
+      return(result)
+    }, error = function(e) {
+      cat("Import attempt", attempt, "failed:", e$message, "\n")
+      if (attempt == max_retries) {
+        stop("Import failed after", max_retries, "attempts")
+      }
+      # Wait before retry
+      Sys.sleep(2)
+    })
+  }
+}
+
+# Use safe import
+result <- safe_import(project, new_records)
+```
+
+### Handling Large Imports
+
+```{r large_imports, eval=FALSE}
+# Import large datasets in chunks
+import_in_chunks <- function(project, data, chunk_size = 100) {
+  n_records <- nrow(data)
+  n_chunks <- ceiling(n_records / chunk_size)
+  
+  cat("Importing", n_records, "records in", n_chunks, "chunks\n")
+  
+  results <- list()
+  
+  for (i in 1:n_chunks) {
+    start_idx <- (i - 1) * chunk_size + 1
+    end_idx <- min(i * chunk_size, n_records)
+    
+    chunk_data <- data[start_idx:end_idx, ]
+    
+    cat("Importing chunk", i, "of", n_chunks, 
+        "(records", start_idx, "to", end_idx, ")\n")
+    
+    result <- import_records(project, chunk_data)
+    results[[i]] <- result
+    
+    # Brief pause between chunks
+    if (i < n_chunks) Sys.sleep(1)
+  }
+  
+  cat("All chunks imported successfully\n")
+  project$refresh()
+  
+  return(results)
+}
+
+# Use for large datasets
+# results <- import_in_chunks(project, large_dataset)
+```
+
+## Best Practices
+
+### 1. Always Validate Before Import
+```{r bp_validate, eval=FALSE}
+# Check data quality before import
+data_quality_check <- function(data) {
+  issues <- list()
+  
+  # Check for missing record IDs
+  if (any(is.na(data$record_id) | data$record_id == "")) {
+    issues$missing_ids <- "Some records have missing record_id"
+  }
+  
+  # Check for reasonable data ranges
+  # Add your project-specific checks here
+  
+  return(issues)
+}
+```
+
+### 2. Refresh Cache After Import
+```{r bp_refresh, eval=FALSE}
+# Always refresh after import
+import_records(project, data)
+project$refresh()  # Critical for data consistency
+```
+
+### 3. Keep Import Logs
+```{r bp_logging, eval=FALSE}
+# Log all import activities
+log_import <- function(project, data, result) {
+  log_entry <- list(
+    timestamp = Sys.time(),
+    records_imported = nrow(data),
+    import_result = result,
+    fields = names(data)
+  )
+  
+  # Save to log file or database
+  # saveRDS(log_entry, paste0("import_log_", Sys.Date(), ".rds"))
+}
+```
+
+### 4. Test with Small Batches First
+```{r bp_testing, eval=FALSE}
+# Test import process with small sample
+test_data <- head(large_dataset, 5)
+test_result <- import_records(project, test_data)
+
+# Verify test import worked correctly
+project$refresh()
+verify_import(project, test_data)
+
+# If test successful, proceed with full import
+if (test_successful) {
+  full_result <- import_records(project, large_dataset)
+}
+```
+
+## Summary
+
+Key points for REDCap data import with sardine:
+
+- **Import warnings**: The package warns when imports make cached data outdated
+- **Always refresh**: Use `project$refresh()` after imports to update cached data
+- **Validate first**: Check data quality before importing
+- **Handle errors**: Use try-catch and chunking for robust imports
+- **Verify results**: Confirm imports were successful
+- **Log activities**: Keep records of import operations
+
+The sardine package makes REDCap data import straightforward while helping you maintain data integrity and consistency.

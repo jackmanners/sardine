@@ -1,0 +1,662 @@
+---
+title: "REDCap Report Generation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{REDCap Report Generation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# REDCap Report Generation with Sardine
+
+This vignette demonstrates how to generate various types of reports from REDCap data using the sardine package.
+
+## Setup
+
+```{r setup}
+library(sardine)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(tibble)
+```
+
+## Project Setup
+
+```{r project_setup, eval=FALSE}
+# Load environment and create project
+load_env()
+project <- redcap_project_from_env()
+
+# View project info
+project$info()
+```
+
+## Participant Completion Reports
+
+The most common type of REDCap report tracks participant completion status across forms and events.
+
+### Simple Completion Report
+
+```{r simple_completion, eval=FALSE}
+# Generate completion status for all participants
+completion_data <- get_participant_completion(project)
+
+# Print formatted report to console
+print_completion_report(completion_data)
+```
+
+Example output:
+```
+PARTICIPANT COMPLETION REPORT
+============================
+
+Participant: 001
+--------------------
+  ✅ demographics: Complete
+  🟡 medical_history: Incomplete
+  ✅ baseline_survey: Complete
+  ❌ follow_up_survey: Not Started
+
+Participant: 002
+--------------------
+  ✅ demographics: Complete
+  ✅ medical_history: Complete
+  🔵 baseline_survey: Unverified
+  🟡 follow_up_survey: Incomplete
+```
+
+### Completion Summary Table
+
+```{r completion_summary, eval=FALSE}
+# Create summary table with completion rates
+summary_table <- create_completion_summary(completion_data)
+
+# View summary
+print(summary_table)
+
+# Save as CSV
+write.csv(summary_table, "completion_summary.csv", row.names = FALSE)
+```
+
+### Quick Completion Overview
+
+```{r quick_completion, eval=FALSE}
+# Generate quick overview report
+quick_report <- quick_completion_report(project)
+
+# View the data
+head(quick_report)
+
+# Print summary
+print_completion_summary(quick_report)
+```
+
+## Custom Data Quality Reports
+
+### Missing Data Report
+
+```{r missing_data_report, eval=FALSE}
+# Generate missing data report
+generate_missing_data_report <- function(project) {
+  data <- project$data
+  
+  # Calculate missing percentages by field
+  missing_summary <- data %>%
+    summarise_all(~sum(is.na(.))) %>%
+    gather(field, missing_count) %>%
+    mutate(
+      total_records = nrow(data),
+      missing_percent = round(missing_count / total_records * 100, 1)
+    ) %>%
+    arrange(desc(missing_percent)) %>%
+    filter(missing_count > 0)
+  
+  cat("MISSING DATA REPORT\n")
+  cat("==================\n\n")
+  cat("Total records:", nrow(data), "\n")
+  cat("Total fields:", ncol(data), "\n")
+  cat("Fields with missing data:", nrow(missing_summary), "\n\n")
+  
+  if (nrow(missing_summary) > 0) {
+    cat("Top 10 fields with missing data:\n")
+    print(head(missing_summary, 10))
+  } else {
+    cat("No missing data found!\n")
+  }
+  
+  return(missing_summary)
+}
+
+missing_report <- generate_missing_data_report(project)
+```
+
+### Data Range Report
+
+```{r range_report, eval=FALSE}
+# Generate data range and outlier report
+generate_range_report <- function(project) {
+  data <- project$data
+  numeric_fields <- data %>% select_if(is.numeric) %>% names()
+  
+  range_summary <- data %>%
+    select(all_of(numeric_fields)) %>%
+    summarise_all(list(
+      min = ~min(., na.rm = TRUE),
+      max = ~max(., na.rm = TRUE),
+      mean = ~round(mean(., na.rm = TRUE), 2),
+      median = ~round(median(., na.rm = TRUE), 2),
+      na_count = ~sum(is.na(.))
+    )) %>%
+    gather(key, value) %>%
+    separate(key, into = c("field", "statistic"), sep = "_(?=[^_]+$)") %>%
+    spread(statistic, value)
+  
+  cat("NUMERIC FIELD RANGES REPORT\n")
+  cat("==========================\n\n")
+  print(range_summary)
+  
+  return(range_summary)
+}
+
+range_report <- generate_range_report(project)
+```
+
+## Enrollment and Recruitment Reports
+
+### Enrollment Over Time
+
+```{r enrollment_report, eval=FALSE}
+# Generate enrollment timeline report
+generate_enrollment_report <- function(project) {
+  data <- project$data
+  
+  # Assume there's an enrollment_date field
+  if ("enrollment_date" %in% names(data)) {
+    enrollment_timeline <- data %>%
+      filter(!is.na(enrollment_date)) %>%
+      mutate(
+        enrollment_date = as.Date(enrollment_date),
+        enrollment_month = format(enrollment_date, "%Y-%m")
+      ) %>%
+      count(enrollment_month, name = "enrolled") %>%
+      arrange(enrollment_month) %>%
+      mutate(cumulative = cumsum(enrolled))
+    
+    cat("ENROLLMENT REPORT\n")
+    cat("================\n\n")
+    cat("Total enrolled:", sum(enrollment_timeline$enrolled), "\n")
+    cat("Enrollment period:", min(enrollment_timeline$enrollment_month), 
+        "to", max(enrollment_timeline$enrollment_month), "\n\n")
+    
+    print(enrollment_timeline)
+    
+    # Plot if ggplot2 is available
+    if (requireNamespace("ggplot2", quietly = TRUE)) {
+      p <- ggplot(enrollment_timeline, aes(x = enrollment_month, y = cumulative)) +
+        geom_line(group = 1) +
+        geom_point() +
+        theme_minimal() +
+        labs(
+          title = "Cumulative Enrollment Over Time",
+          x = "Month",
+          y = "Cumulative Participants"
+        ) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))
+      
+      print(p)
+    }
+    
+    return(enrollment_timeline)
+  } else {
+    cat("No enrollment_date field found\n")
+    return(NULL)
+  }
+}
+
+enrollment_report <- generate_enrollment_report(project)
+```
+
+### Demographic Summary
+
+```{r demographic_report, eval=FALSE}
+# Generate demographic summary report
+generate_demographic_report <- function(project) {
+  data <- project$data
+  
+  cat("DEMOGRAPHIC SUMMARY REPORT\n")
+  cat("=========================\n\n")
+  
+  # Age summary
+  if ("age" %in% names(data)) {
+    age_stats <- data %>%
+      summarise(
+        n = sum(!is.na(age)),
+        mean_age = round(mean(age, na.rm = TRUE), 1),
+        median_age = median(age, na.rm = TRUE),
+        min_age = min(age, na.rm = TRUE),
+        max_age = max(age, na.rm = TRUE)
+      )
+    
+    cat("Age Statistics:\n")
+    print(age_stats)
+    cat("\n")
+  }
+  
+  # Gender distribution
+  if ("gender" %in% names(data)) {
+    gender_summary <- data %>%
+      count(gender, name = "count") %>%
+      mutate(percentage = round(count / sum(count) * 100, 1)) %>%
+      filter(!is.na(gender))
+    
+    cat("Gender Distribution:\n")
+    print(gender_summary)
+    cat("\n")
+  }
+  
+  # Race/ethnicity if available
+  if ("race" %in% names(data)) {
+    race_summary <- data %>%
+      count(race, name = "count") %>%
+      mutate(percentage = round(count / sum(count) * 100, 1)) %>%
+      filter(!is.na(race)) %>%
+      arrange(desc(count))
+    
+    cat("Race Distribution:\n")
+    print(race_summary)
+    cat("\n")
+  }
+  
+  return(list(
+    age_stats = if(exists("age_stats")) age_stats else NULL,
+    gender_summary = if(exists("gender_summary")) gender_summary else NULL,
+    race_summary = if(exists("race_summary")) race_summary else NULL
+  ))
+}
+
+demographic_report <- generate_demographic_report(project)
+```
+
+## Longitudinal Project Reports
+
+For projects with multiple time points:
+
+### Event Completion Report
+
+```{r longitudinal_completion, eval=FALSE}
+# Generate event-specific completion report
+generate_longitudinal_completion_report <- function(project) {
+  # Check if project is longitudinal
+  events <- tryCatch(export_events(project), error = function(e) NULL)
+  
+  if (is.null(events) || nrow(events) == 0) {
+    cat("Project is not longitudinal\n")
+    return(NULL)
+  }
+  
+  data <- project$data
+  instruments <- export_instruments(project)
+  
+  cat("LONGITUDINAL COMPLETION REPORT\n")
+  cat("=============================\n\n")
+  cat("Events:", nrow(events), "\n")
+  cat("Instruments:", nrow(instruments), "\n\n")
+  
+  # Create completion matrix by event
+  completion_by_event <- list()
+  
+  for (event in events$unique_event_name) {
+    event_data <- data %>% filter(redcap_event_name == event)
+    
+    if (nrow(event_data) > 0) {
+      event_completion <- data.frame(
+        event = event,
+        participants = nrow(event_data),
+        stringsAsFactors = FALSE
+      )
+      
+      # Count completion for each instrument
+      for (instrument in instruments$instrument_name) {
+        complete_field <- paste0(instrument, "_complete")
+        if (complete_field %in% names(event_data)) {
+          completed <- sum(event_data[[complete_field]] == 2, na.rm = TRUE)
+          event_completion[[instrument]] <- completed
+        }
+      }
+      
+      completion_by_event[[event]] <- event_completion
+    }
+  }
+  
+  # Combine into summary table
+  if (length(completion_by_event) > 0) {
+    completion_summary <- bind_rows(completion_by_event)
+    print(completion_summary)
+    return(completion_summary)
+  }
+  
+  return(NULL)
+}
+
+longitudinal_report <- generate_longitudinal_completion_report(project)
+```
+
+### Retention Report
+
+```{r retention_report, eval=FALSE}
+# Generate participant retention report
+generate_retention_report <- function(project) {
+  events <- tryCatch(export_events(project), error = function(e) NULL)
+  
+  if (is.null(events) || nrow(events) == 0) {
+    cat("Retention report requires longitudinal project\n")
+    return(NULL)
+  }
+  
+  data <- project$data
+  
+  # Count participants by event
+  retention_data <- data %>%
+    count(redcap_event_name, name = "participants") %>%
+    left_join(events, by = c("redcap_event_name" = "unique_event_name")) %>%
+    arrange(day_offset) %>%
+    mutate(
+      retention_rate = round(participants / max(participants) * 100, 1)
+    )
+  
+  cat("RETENTION REPORT\n")
+  cat("===============\n\n")
+  print(retention_data)
+  
+  # Plot retention curve
+  if (requireNamespace("ggplot2", quietly = TRUE)) {
+    p <- ggplot(retention_data, aes(x = reorder(event_name, day_offset), y = retention_rate)) +
+      geom_line(group = 1) +
+      geom_point() +
+      theme_minimal() +
+      labs(
+        title = "Participant Retention by Event",
+        x = "Event",
+        y = "Retention Rate (%)"
+      ) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    
+    print(p)
+  }
+  
+  return(retention_data)
+}
+
+retention_report <- generate_retention_report(project)
+```
+
+## Automated Report Generation
+
+### Comprehensive Project Report
+
+```{r comprehensive_report, eval=FALSE}
+# Generate comprehensive project status report
+generate_comprehensive_report <- function(project, output_file = NULL) {
+  
+  report_content <- list()
+  
+  cat("COMPREHENSIVE PROJECT REPORT\n")
+  cat("===========================\n")
+  cat("Generated:", format(Sys.time(), "%Y-%m-%d %H:%M:%S"), "\n\n")
+  
+  # 1. Project Overview
+  project$info()
+  cat("\n")
+  
+  # 2. Data Summary
+  data <- project$data
+  cat("DATA SUMMARY\n")
+  cat("============\n")
+  cat("Total records:", nrow(data), "\n")
+  cat("Total fields:", ncol(data), "\n")
+  cat("Record ID field:", names(data)[1], "\n\n")
+  
+  # 3. Completion Report
+  cat("COMPLETION STATUS\n")
+  cat("================\n")
+  completion_data <- get_participant_completion(project)
+  summary_table <- create_completion_summary(completion_data)
+  
+  overall_completion <- summary_table %>%
+    summarise(
+      total_participants = n_distinct(participant_id),
+      avg_completion_rate = round(mean(completion_rate), 1),
+      min_completion = min(completion_rate),
+      max_completion = max(completion_rate)
+    )
+  
+  print(overall_completion)
+  cat("\n")
+  
+  # 4. Missing Data Summary
+  missing_report <- generate_missing_data_report(project)
+  cat("\n")
+  
+  # 5. Demographics (if available)
+  demographic_report <- generate_demographic_report(project)
+  
+  # 6. Save detailed reports if requested
+  if (!is.null(output_file)) {
+    # Save completion summary
+    write.csv(summary_table, 
+              paste0(tools::file_path_sans_ext(output_file), "_completion.csv"), 
+              row.names = FALSE)
+    
+    # Save missing data report
+    if (!is.null(missing_report) && nrow(missing_report) > 0) {
+      write.csv(missing_report, 
+                paste0(tools::file_path_sans_ext(output_file), "_missing_data.csv"), 
+                row.names = FALSE)
+    }
+    
+    cat("Detailed reports saved with prefix:", tools::file_path_sans_ext(output_file), "\n")
+  }
+  
+  return(list(
+    project_info = project$project_info,
+    data_summary = list(records = nrow(data), fields = ncol(data)),
+    completion_summary = overall_completion,
+    missing_data = missing_report,
+    demographics = demographic_report
+  ))
+}
+
+# Generate comprehensive report
+full_report <- generate_comprehensive_report(project, "project_report")
+```
+
+### Scheduled Reporting Function
+
+```{r scheduled_reporting, eval=FALSE}
+# Function for automated/scheduled reporting
+run_scheduled_report <- function(env_file = ".env", output_dir = "reports") {
+  
+  # Create output directory if it doesn't exist
+  if (!dir.exists(output_dir)) {
+    dir.create(output_dir)
+  }
+  
+  # Load environment and create project
+  load_env(env_file)
+  project <- redcap_project_from_env()
+  
+  # Generate timestamp for file names
+  timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  
+  # Generate reports
+  cat("Generating scheduled reports...\n")
+  
+  # 1. Completion report
+  completion_data <- get_participant_completion(project)
+  completion_summary <- create_completion_summary(completion_data)
+  write.csv(completion_summary, 
+            file.path(output_dir, paste0("completion_", timestamp, ".csv")),
+            row.names = FALSE)
+  
+  # 2. Missing data report
+  missing_data <- generate_missing_data_report(project)
+  if (!is.null(missing_data) && nrow(missing_data) > 0) {
+    write.csv(missing_data,
+              file.path(output_dir, paste0("missing_data_", timestamp, ".csv")),
+              row.names = FALSE)
+  }
+  
+  # 3. Quick summary
+  quick_summary <- data.frame(
+    report_date = Sys.Date(),
+    total_records = nrow(project$data),
+    total_fields = ncol(project$data),
+    avg_completion_rate = round(mean(completion_summary$completion_rate), 1),
+    stringsAsFactors = FALSE
+  )
+  
+  write.csv(quick_summary,
+            file.path(output_dir, paste0("summary_", timestamp, ".csv")),
+            row.names = FALSE)
+  
+  cat("Reports saved to:", output_dir, "\n")
+  cat("Files generated:")
+  cat("  - completion_", timestamp, ".csv\n", sep = "")
+  cat("  - missing_data_", timestamp, ".csv\n", sep = "")
+  cat("  - summary_", timestamp, ".csv\n", sep = "")
+  
+  return(invisible(list(
+    completion = completion_summary,
+    missing_data = missing_data,
+    summary = quick_summary
+  )))
+}
+
+# Run scheduled report
+# scheduled_results <- run_scheduled_report()
+```
+
+## Report Customization
+
+### Custom Report Templates
+
+```{r custom_templates, eval=FALSE}
+# Create custom report template function
+create_custom_report_template <- function(project, report_type = "standard") {
+  
+  template <- switch(report_type,
+    "standard" = {
+      list(
+        title = "Standard Project Report",
+        sections = c("overview", "completion", "missing_data"),
+        format = "console"
+      )
+    },
+    "executive" = {
+      list(
+        title = "Executive Summary",
+        sections = c("overview", "key_metrics", "issues"),
+        format = "summary"
+      )
+    },
+    "detailed" = {
+      list(
+        title = "Detailed Analysis Report",
+        sections = c("overview", "completion", "missing_data", "demographics", "quality"),
+        format = "full"
+      )
+    }
+  )
+  
+  return(template)
+}
+
+# Use custom template
+executive_template <- create_custom_report_template(project, "executive")
+```
+
+## Best Practices for Reporting
+
+### 1. Regular Monitoring
+```{r bp_monitoring, eval=FALSE}
+# Set up regular monitoring reports
+monitor_project_health <- function(project) {
+  health_metrics <- list(
+    data_freshness = difftime(Sys.time(), project$.created_at, units = "hours"),
+    record_count = nrow(project$data),
+    completion_rate = mean(create_completion_summary(get_participant_completion(project))$completion_rate),
+    missing_data_fields = nrow(generate_missing_data_report(project))
+  )
+  
+  # Alert conditions
+  alerts <- list()
+  if (health_metrics$data_freshness > 24) {
+    alerts$stale_data <- "Data cache is over 24 hours old"
+  }
+  if (health_metrics$completion_rate < 50) {
+    alerts$low_completion <- "Average completion rate below 50%"
+  }
+  
+  return(list(metrics = health_metrics, alerts = alerts))
+}
+```
+
+### 2. Version Control for Reports
+```{r bp_versioning, eval=FALSE}
+# Add version control to reports
+add_report_metadata <- function(report_data) {
+  metadata <- list(
+    generated_at = Sys.time(),
+    sardine_version = packageVersion("sardine"),
+    r_version = R.version.string,
+    report_version = "1.0"
+  )
+  
+  report_data$metadata <- metadata
+  return(report_data)
+}
+```
+
+### 3. Export to Multiple Formats
+```{r bp_formats, eval=FALSE}
+# Export reports in multiple formats
+export_report <- function(report_data, filename_base) {
+  # CSV for data
+  if ("data" %in% names(report_data)) {
+    write.csv(report_data$data, paste0(filename_base, ".csv"), row.names = FALSE)
+  }
+  
+  # JSON for structured data
+  jsonlite::write_json(report_data, paste0(filename_base, ".json"), pretty = TRUE)
+  
+  # RDS for R objects
+  saveRDS(report_data, paste0(filename_base, ".rds"))
+}
+```
+
+## Summary
+
+The sardine package provides comprehensive reporting capabilities for REDCap projects:
+
+- **Completion Reports**: Track participant progress across forms and events
+- **Data Quality Reports**: Identify missing data and outliers
+- **Demographic Reports**: Summarize participant characteristics
+- **Longitudinal Reports**: Track retention and event completion
+- **Automated Reporting**: Schedule regular report generation
+- **Custom Templates**: Create project-specific report formats
+
+Key benefits:
+- **Cached data**: Fast report generation using cached project data
+- **Flexible output**: Console, CSV, JSON, and custom formats
+- **Comprehensive coverage**: From simple completion to complex analytics
+- **Automation ready**: Easy to schedule and batch process
+
+Reports help maintain project oversight, identify issues early, and communicate progress to stakeholders effectively.

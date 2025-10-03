@@ -1,0 +1,50 @@
+url: https://jackmanners.github.io/sardine/
+template:
+  bootstrap: 5
+  
+home:
+  title: sardine • Structured Architecture for Research Data Integration
+  description: >
+    An R package providing a structured interface for research data integration
+    and evaluation, with initial focus on REDCap API integration.
+  
+navbar:
+  structure:
+    left: [home, reference, articles, news]
+    right: [search, github]
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/jackmanners/sardine
+      aria-label: GitHub
+
+reference:
+  - title: "Connection Management"  
+    desc: "Creating and testing connections"
+    contents:
+      - sardine_connection
+      - redcap_connection
+      - test_connection
+      - print.sardine_connection
+      - test_connection.default
+      - test_connection.redcap_connection
+      
+  - title: "REDCap Metadata"
+    desc: "Functions for retrieving project metadata"
+    contents:
+      - redcap_project_info
+      - redcap_metadata
+      - redcap_field_names
+
+articles:
+  - title: "Getting Started"
+    navbar: ~
+    contents:
+      - getting-started
+      
+  - title: "REDCap Guides"
+    desc: "Comprehensive guides for REDCap data management"
+    contents:
+      - redcap/01-data-extraction
+      - redcap/02-data-import
+      - redcap/03-report-generation

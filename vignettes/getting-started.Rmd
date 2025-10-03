@@ -1,8 +1,8 @@
 ---
-title: "Getting Started with sardine"
+title: "Getting Started with Sardine"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Getting Started with sardine}
+  %\VignetteIndexEntry{Getting Started with Sardine}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,9 +14,11 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r setup}
+```{r setup, eval=FALSE}
 library(sardine)
 ```
+
+The sardine package provides a modern, object-oriented interface for working with research data APIs, starting with comprehensive REDCap support.
 
 # Introduction
 
@@ -31,22 +33,19 @@ You can install the development version of sardine from GitHub:
 devtools::install_github("jackmanners/sardine")
 ```
 
-## Setting up a REDCap Connection
+## Setting up Your REDCap Project
 
-The first step is to create a connection to your REDCap project using your API token:
+The first step is to create a REDCap project object. This will test your connection and cache project metadata:
 
 ```{r eval=FALSE}
-# Create connection using direct parameters
-conn <- redcap_connection(
+# Create project using direct parameters
+project <- redcap_project(
   url = "https://redcap.your-institution.edu/api/",
   token = "YOUR_API_TOKEN"
 )
 
-# Or use environment variables for security
-conn <- redcap_connection(
-  url = Sys.getenv("REDCAP_URL"),
-  token = Sys.getenv("REDCAP_TOKEN")
-)
+# Or use environment variables for security (recommended)
+project <- redcap_project_from_env()
 ```
 
 ### Security Best Practices

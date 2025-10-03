@@ -1,0 +1,299 @@
+---
+title: "REDCap Data Extraction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{REDCap Data Extraction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# REDCap Data Extraction with Sardine
+
+This vignette demonstrates how to extract data from REDCap projects using the sardine package's object-oriented approach.
+
+## Setup
+
+First, load the required packages:
+
+```{r setup}
+library(sardine)
+library(dplyr)
+library(tibble)
+```
+
+## Environment Configuration
+
+The sardine package uses environment variables for secure credential management:
+
+```{r env_setup, eval=FALSE}
+# Create environment template (one-time setup)
+create_env_template()
+
+# Edit the .env file with your REDCap credentials:
+# REDCAP_URL=https://redcap.example.edu/api/
+# REDCAP_TOKEN=YOUR_API_TOKEN_HERE
+
+# Load environment variables
+load_env()
+```
+
+## Creating a REDCap Project
+
+The core of sardine's approach is the REDCap project object:
+
+```{r project_creation, eval=FALSE}
+# Create project from environment variables
+project <- redcap_project_from_env()
+
+# Or create directly with credentials
+project <- redcap_project(
+  url = "https://redcap.example.edu/api/",
+  token = "YOUR_API_TOKEN"
+)
+```
+
+When you create a project:
+- Connection is tested automatically
+- Full dataset is cached for performance
+- Project metadata is retrieved
+- Any connection issues cause immediate failure with clear error messages
+
+## Viewing Project Information
+
+```{r project_info, eval=FALSE}
+# View project summary
+project$info()
+# REDCap Project
+# ==============
+# Title: My Research Study
+# URL: https://redcap.example.edu
+# Created: 2025-10-03 10:30:00
+# Cached Data: 150 records, 25 fields
+```
+
+## Accessing All Data
+
+The simplest way to get all your data:
+
+```{r all_data, eval=FALSE}
+# Access cached full dataset
+all_data <- project$data
+
+# View data structure
+glimpse(all_data)
+
+# Basic summary
+cat("Records:", nrow(all_data), "\n")
+cat("Fields:", ncol(all_data), "\n")
+cat("Record ID field:", names(all_data)[1], "\n")
+```
+
+## Extracting Specific Fields
+
+For targeted data extraction:
+
+```{r specific_fields, eval=FALSE}
+# Extract demographic fields
+demographics <- export_records(
+  project,
+  fields = c("record_id", "age", "gender", "race", "ethnicity")
+)
+
+# Extract baseline measurements
+baseline <- export_records(
+  project,
+  fields = c("record_id", "height", "weight", "bp_systolic", "bp_diastolic")
+)
+
+# View results
+head(demographics)
+```
+
+## Extracting Specific Records
+
+To get data for particular participants:
+
+```{r specific_records, eval=FALSE}
+# Extract data for specific participants
+pilot_participants <- export_records(
+  project,
+  records = c("001", "002", "003", "004", "005")
+)
+
+# Extract records meeting criteria (using cached data)
+high_risk <- project$data %>%
+  filter(risk_score > 75) %>%
+  pull(record_id)
+
+high_risk_data <- export_records(
+  project,
+  records = high_risk
+)
+```
+
+## Extracting by Form/Instrument
+
+To get data from specific forms:
+
+```{r by_form, eval=FALSE}
+# Get all instruments/forms
+instruments <- export_instruments(project)
+print(instruments)
+
+# Extract data from specific form
+baseline_survey <- export_records(
+  project,
+  forms = "baseline_demographics"
+)
+
+# Extract from multiple forms
+core_data <- export_records(
+  project,
+  forms = c("demographics", "medical_history", "current_medications")
+)
+```
+
+## Working with Longitudinal Projects
+
+For projects with multiple events:
+
+```{r longitudinal, eval=FALSE}
+# Check if project is longitudinal
+events <- export_events(project)
+
+if (nrow(events) > 0) {
+  cat("Longitudinal project with", nrow(events), "events\n")
+  
+  # Extract data from specific event
+  baseline_event <- export_records(
+    project,
+    events = "baseline_arm_1"
+  )
+  
+  # Extract from multiple events
+  followup_data <- export_records(
+    project,
+    events = c("month_3_arm_1", "month_6_arm_1", "month_12_arm_1")
+  )
+  
+  # Combine specific fields and events
+  vital_signs_over_time <- export_records(
+    project,
+    fields = c("record_id", "height", "weight", "bp_systolic", "bp_diastolic"),
+    events = c("baseline_arm_1", "month_3_arm_1", "month_6_arm_1")
+  )
+}
+```
+
+## Data Refresh
+
+When you need fresh data from REDCap:
+
+```{r refresh, eval=FALSE}
+# Refresh cached data
+project$refresh()
+
+# The cached data is now updated
+fresh_data <- project$data
+```
+
+## Best Practices
+
+### 1. Use Cached Data When Possible
+```{r best_practices_cache, eval=FALSE}
+# Good: Use cached data for exploration
+all_data <- project$data
+summary_stats <- all_data %>%
+  summarise(
+    n_participants = n_distinct(record_id),
+    mean_age = mean(age, na.rm = TRUE),
+    complete_records = sum(complete.cases(.))
+  )
+```
+
+### 2. Use Targeted Extraction for Specific Analyses
+```{r best_practices_targeted, eval=FALSE}
+# Good: Extract only needed fields for analysis
+analysis_data <- export_records(
+  project,
+  fields = c("record_id", "treatment_group", "outcome_measure", "baseline_score")
+)
+```
+
+### 3. Handle Missing Data Appropriately
+```{r best_practices_missing, eval=FALSE}
+# Check for missing data patterns
+missing_summary <- project$data %>%
+  summarise_all(~sum(is.na(.))) %>%
+  gather(field, missing_count) %>%
+  arrange(desc(missing_count))
+
+print(missing_summary)
+```
+
+### 4. Validate Data After Extraction
+```{r best_practices_validate, eval=FALSE}
+# Validate extracted data
+validation_checks <- list(
+  record_count = nrow(demographics),
+  expected_fields = all(c("record_id", "age", "gender") %in% names(demographics)),
+  no_duplicate_records = nrow(demographics) == n_distinct(demographics$record_id),
+  reasonable_age_range = all(demographics$age >= 0 & demographics$age <= 120, na.rm = TRUE)
+)
+
+cat("Validation Results:\n")
+print(validation_checks)
+```
+
+## Troubleshooting
+
+### Connection Issues
+```{r troubleshoot_connection, eval=FALSE}
+# If project creation fails, check:
+# 1. URL format (should end with /api/)
+# 2. Token validity
+# 3. Network connectivity
+
+tryCatch({
+  project <- redcap_project_from_env()
+}, error = function(e) {
+  cat("Connection failed:", e$message, "\n")
+  cat("Check your REDCAP_URL and REDCAP_TOKEN in .env file\n")
+})
+```
+
+### Empty Results
+```{r troubleshoot_empty, eval=FALSE}
+# If export_records returns empty results:
+result <- export_records(project, fields = c("record_id", "nonexistent_field"))
+
+if (nrow(result) == 0) {
+  cat("No data returned. Check:\n")
+  cat("- Field names are correct\n")
+  cat("- Records exist in the project\n")
+  cat("- User has appropriate permissions\n")
+  
+  # Check available fields
+  available_fields <- names(project$data)
+  cat("Available fields:", paste(head(available_fields, 10), collapse = ", "), "...\n")
+}
+```
+
+## Summary
+
+The sardine package provides a clean, efficient way to extract REDCap data:
+
+- **Create once, use many times**: Project objects cache data for performance
+- **Fail-fast**: Connection issues are caught immediately
+- **Flexible extraction**: Get all data, specific fields, records, or forms
+- **Longitudinal support**: Handle complex event-based projects
+- **Clean interface**: Intuitive function names and consistent API
+
+Next, see the data import vignette to learn about getting data back into REDCap.

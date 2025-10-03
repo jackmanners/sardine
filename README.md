@@ -10,24 +10,18 @@
 
 **S**tructured **A**rchitecture for **R**esearch **D**ata **I**ntegration and **E**valuation
 
-`sardine` is an R package that provides a structured and secure interface for research data integration and evaluation. The package is designed to facilitate seamless data exchange between R and various research data platforms, with initial focus on REDCap API integration.
+`sardine` provides a modern, object-oriented interface for research data APIs, starting with comprehensive REDCap support. The package emphasizes performance, data integrity, and ease of use through project objects that cache data and provide clean method interfaces.
 
-## Features
+## Key Features
 
-- **Secure REDCap API Integration**: Connect to REDCap projects with robust authentication and error handling
-- **Comprehensive REDCap Coverage**: Support for all major REDCap API endpoints including:
-  - Records (export, import, delete, rename)
-  - Metadata and project information
-  - Arms and events (for longitudinal projects)
-  - Instruments and forms
-  - User management and roles
-  - Data Access Groups (DAGs)
-  - File operations
-  - Survey functionality
-  - Reports and logging
-  - Project backup and XML export
-- **Data Validation**: Built-in validation for data integrity and completeness
-- **Flexible Export Options**: Support for various data formats (JSON, CSV, XML) and filtering options
+- **Object-Oriented Design**: Project objects that test connections automatically and cache data for performance
+- **Fail-Fast Error Handling**: Connection issues caught immediately during project creation
+- **Data Caching**: Full datasets cached on project creation, with manual refresh capabilities
+- **Clean Method Names**: No `redcap_` prefixes - `export_records()` vs `redcap_export_records()`
+- **Import Warnings**: Alerts when imports make cached data outdated
+- **Comprehensive REDCap Coverage**: All major REDCap API endpoints supported
+- **Modular Architecture**: Base classes ready for additional API sources (Qualtrics, etc.)
+- **Security First**: Environment variable management with `.env` file support
 - **Error Handling**: Comprehensive error reporting and debugging tools
 - **Extensible Architecture**: Designed to support additional APIs in future versions
 
@@ -42,122 +36,123 @@ devtools::install_github("jackmanners/sardine")
 
 ## Quick Start
 
-### Setting up REDCap Connection
+### 1. Environment Setup
 
 ```r
 library(sardine)
 
-# Set up your REDCap connection
-redcap_config <- redcap_connection(
-  url = "https://redcap.your-institution.edu/api/",
-  token = "YOUR_API_TOKEN"
-)
+# Create environment template (one-time)
+create_env_template()
+# Edit .env file with your REDCap credentials
 
-# Test the connection
-test_connection(redcap_config)
+# Load environment
+load_env()
 ```
 
-### Exporting Data
+### 2. Create REDCap Project
 
 ```r
-# Export all records
-data <- redcap_export_records(redcap_config)
+# Create project (tests connection & caches data automatically)
+project <- redcap_project_from_env()
+
+# View project information  
+project$info()
+```
+
+### 3. Access Data
+
+```r
+# Access all cached data
+all_data <- project$data
 
 # Export specific fields
-data <- redcap_export_records(
-  redcap_config,
+demographics <- export_records(
+  project,
   fields = c("record_id", "age", "gender")
 )
 
-# Export with filters
-data <- redcap_export_records(
-  redcap_config,
-  records = c("001", "002", "003"),
-  events = "baseline_arm_1"
+# Export specific records
+subset <- export_records(
+  project,
+  records = c("001", "002", "003")
 )
+
+# Export from specific forms
+baseline <- export_records(project, forms = "baseline_survey")
 ```
 
-### Project Metadata
+### 4. Import Data
 
 ```r
-# Get project information
-project_info <- redcap_project_info(redcap_config)
+# Prepare data for import
+new_data <- tibble::tibble(
+  record_id = c("004", "005"),
+  age = c(25, 30),
+  gender = c("Male", "Female")
+)
 
-# Get data dictionary
-metadata <- redcap_metadata(redcap_config)
+# Import records
+result <- import_records(project, new_data)
 
-# Get field names
-field_names <- redcap_field_names(redcap_config)
-
-# Get instruments (forms)
-instruments <- redcap_export_instruments(redcap_config)
+# Refresh cached data after imports
+project$refresh()
 ```
 
-### Advanced Operations
+### 5. Generate Reports
 
 ```r
-# Import new records
-new_data <- data.frame(
-  record_id = "new_001",
-  first_name = "John",
-  last_name = "Doe",
-  age = 30
-)
-redcap_import_records(redcap_config, new_data)
+# Participant completion report
+completion <- get_participant_completion(project)
+print_completion_report(completion)
 
+# Quick completion summary
+quick_report <- quick_completion_report(project)
+### 6. Project Metadata
+
+```r
+# Access project metadata (cached automatically)
+instruments <- project$instruments
+dictionary <- project$dictionary
+events <- project$events
+users <- project$users
+
+# Or export fresh metadata
+fresh_instruments <- export_instruments(project)
+```
+
+## Features
+
+- **Object-oriented interface**: Work with `redcap_project()` objects that cache data and metadata
+- **Environment management**: Secure credential handling with `.env` files  
+- **Clean API**: Intuitive methods for data operations
+- **Comprehensive reporting**: Built-in participant completion analysis
+- **Fail-fast validation**: Automatic connection testing and error handling
+- **Data caching**: Automatic caching with smart refresh capabilities
+
+## Documentation
+
+For detailed guides and examples, see the package vignettes:
+
+- [Getting Started with REDCap Data Extraction](vignettes/redcap-data-extraction.Rmd)
+- [Importing Data into REDCap](vignettes/redcap-data-import.Rmd)  
+- [Participant Completion Reporting](vignettes/redcap-reporting.Rmd)
+
+## Advanced Usage
+
+```r
 # Work with longitudinal projects
-arms <- redcap_export_arms(redcap_config)
-events <- redcap_export_events(redcap_config)
-
-# Manage users and permissions
-users <- redcap_export_users(redcap_config)
-user_roles <- redcap_export_user_roles(redcap_config)
-
-# Work with Data Access Groups
-dags <- redcap_export_dags(redcap_config)
-user_dag_mappings <- redcap_export_user_dag_mappings(redcap_config)
+arms <- project$arms
+events <- project$events
 
 # Generate survey links
-survey_url <- redcap_export_survey_link(redcap_config, "001", "baseline_survey")
+survey_url <- export_survey_link(project, "001", "baseline_survey")
 
-# Export project logging
-logs <- redcap_export_logging(redcap_config, begin_time = "2023-01-01 00:00")
+# Export project logging  
+logs <- export_logging(project, begin_time = "2023-01-01 00:00")
 
 # Create project backups
-project_xml <- redcap_export_project_xml(redcap_config)
+project_xml <- export_project_xml(project)
 writeLines(project_xml, "backup.xml")
-```
-
-## Configuration
-
-### Environment Variables
-
-For security, store your API credentials as environment variables:
-
-```r
-# In your .Renviron file:
-REDCAP_URL=https://redcap.your-institution.edu/api/
-REDCAP_TOKEN=your_api_token_here
-
-# Then use in R:
-redcap_config <- redcap_connection(
-  url = Sys.getenv("REDCAP_URL"),
-  token = Sys.getenv("REDCAP_TOKEN")
-)
-```
-
-### Configuration Files
-
-You can also use configuration files:
-
-```r
-# config.yml
-redcap:
-  url: "https://redcap.your-institution.edu/api/"
-  token: "your_token_here"
-
-# In R:
-redcap_config <- redcap_connection_from_config("config.yml")
 ```
 
 ## Security Considerations

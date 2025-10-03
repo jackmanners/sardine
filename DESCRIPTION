@@ -31,5 +31,5 @@ Suggests:
     httptest2
 Config/testthat/edition: 3
 VignetteBuilder: knitr
-URL: https://github.com/jackmanners/sardine
+URL: https://github.com/jackmanners/sardine, https://jackmanners.github.io/sardine/
 BugReports: https://github.com/jackmanners/sardine/issues
