@@ -2,7 +2,8 @@
 
 <!-- badges: start -->
 [![DOI](https://zenodo.org/badge/1068834156.svg)](https://doi.org/10.5281/zenodo.17255208)
-[![pkgdown](https://github.com/jackmanners/sardine/workflows/pkgdown/badge.svg)](https://github.com/jackmanners/sardine/actions)
+[![R-CMD-check](https://github.com/jackmanners/sardine/workflows/R-CMD-check/badge.svg)](https://github.com/jackmanners/sardine/actions)
+[![CRAN status](https://www.r-pkg.org/badges/version/sardine)](https://CRAN.R-project.org/package=sardine)
 <!-- badges: end -->
 
 ## Overview

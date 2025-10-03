@@ -1,13 +1,13 @@
 # sardine 0.1.0
 
-* Initial release of sardine package
-* Added REDCap API integration functions:
-  * `redcap_connection()` - Create REDCap API connections
-  * `redcap_export_records()` - Export records from REDCap
-  * `redcap_metadata()` - Get project metadata
-  * `redcap_project_info()` - Get project information
-  * `redcap_field_names()` - Get field names
-  * `test_connection()` - Test API connections
+## Initial CRAN Release
+
+* Object-oriented interface with `redcap_project()` and `redcap_project_from_env()` 
+* Automatic data and metadata caching for improved performance
+* Clean API with methods like `export_records()`, `import_records()` 
+* Comprehensive participant completion reporting with `get_participant_completion()`
+* Secure environment-based credential management with `.env` files
+* Support for all major REDCap API endpoints and operations
+* Full documentation website with detailed vignettes at https://jackmanners.github.io/sardine/
 * Comprehensive error handling and input validation
-* Security-focused design with support for environment variables
-* Full test coverage and documentation
+* DOI: 10.5281/zenodo.17255208
