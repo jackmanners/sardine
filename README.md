@@ -1,9 +1,8 @@
 # sardine <img src="man/figures/logo.png" align="right" height="139" alt="" />
 
 <!-- badges: start -->
-[![R-CMD-check](https://github.com/jackmanners/sardine/workflows/R-CMD-check/badge.svg)](https://github.com/jackmanners/sardine/actions)
-[![Codecov test coverage](https://codecov.io/gh/jackmanners/sardine/branch/main/graph/badge.svg)](https://app.codecov.io/gh/jackmanners/sardine?branch=main)
-[![CRAN status](https://www.r-pkg.org/badges/version/sardine)](https://CRAN.R-project.org/package=sardine)
+[![DOI](https://zenodo.org/badge/1068834156.svg)](https://doi.org/10.5281/zenodo.17255208)
+[![pkgdown](https://github.com/jackmanners/sardine/workflows/pkgdown/badge.svg)](https://github.com/jackmanners/sardine/actions)
 <!-- badges: end -->
 
 ## Overview
