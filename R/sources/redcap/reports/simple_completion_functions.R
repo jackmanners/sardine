@@ -2,16 +2,20 @@
 # This creates a basic completion report
 
 #' Get participant completion status
-#' @param connection REDCap connection
+#' @param project REDCap project object
 #' @return List with completion data and summaries
-get_participant_completion <- function(connection) {
+get_participant_completion <- function(project) {
   
-  # Get all the data we need
-  records <- redcap_export_records(connection, return_format = "json")
-  instruments <- redcap_export_instruments(connection)
+  if (!inherits(project, "redcap_project")) {
+    stop("project must be a redcap_project object")
+  }
+  
+  # Get all the data we need (use cached data and methods)
+  records <- project$data
+  instruments <- export_instruments(project)
   
   # Check if longitudinal
-  events <- tryCatch(redcap_export_events(connection), error = function(e) NULL)
+  events <- tryCatch(export_events(project), error = function(e) NULL)
   is_longitudinal <- !is.null(events) && nrow(events) > 0
   
   # Get record ID field
@@ -181,6 +185,7 @@ create_completion_summary <- function(completion_result) {
 }
 
 # Example usage (uncomment to run):
-# completion_result <- get_participant_completion(redcap_config)
+# project <- redcap_project_from_env()
+# completion_result <- get_participant_completion(project)
 # print_completion_report(completion_result)
 # summary_table <- create_completion_summary(completion_result)

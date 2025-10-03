@@ -7,29 +7,30 @@ library(dplyr)
 
 # Load environment and connect
 load_dot_env()
-redcap_config <- redcap_connection(
-  url = Sys.getenv("REDCAP_URL"), 
-  token = Sys.getenv("REDCAP_TOKEN")
-)
+project <- redcap_project_from_env()
 
 #' Quick Participant Completion Summary
 #' 
 #' @description
 #' Generates a simple completion report showing what each participant has completed
 #' 
-#' @param connection REDCap connection object
+#' @param project REDCap project object
 #' @return Data frame with completion summary
-quick_completion_report <- function(connection) {
+quick_completion_report <- function(project) {
+  
+  if (!inherits(project, "redcap_project")) {
+    stop("project must be a redcap_project object")
+  }
   
   cat("📊 Generating quick completion report...\n")
   
-  # Get basic project info
-  records <- redcap_export_records(connection, return_format = "json")
-  instruments <- redcap_export_instruments(connection)
+  # Get basic project info (use cached data and methods)
+  records <- project$data
+  instruments <- export_instruments(project)
   
   # Check if longitudinal
   events <- tryCatch({
-    redcap_export_events(connection)
+    export_events(project)
   }, error = function(e) NULL)
   
   is_longitudinal <- !is.null(events) && nrow(events) > 0
@@ -47,7 +48,7 @@ quick_completion_report <- function(connection) {
     
     # For longitudinal projects, we need event-instrument mapping
     event_mapping <- tryCatch({
-      redcap_export_instrument_event_mappings(connection)  
+      export_instrument_event_mappings(project)  
     }, error = function(e) {
       # If mapping fails, assume all instruments in all events
       expand.grid(
@@ -235,11 +236,13 @@ print_completion_summary <- function(completion_data) {
 # Example usage:
 cat("🚀 Quick completion report functions loaded!\n")
 cat("📖 Usage:\n")
-cat("   completion_data <- quick_completion_report(redcap_config)\n")
+cat("   completion_data <- quick_completion_report(project)\n")
 cat("   print_completion_summary(completion_data)\n")
 cat("   View(completion_data)  # To see raw data\n\n")
 
-# Run the report automatically
-cat("🔄 Running quick completion report...\n")
-completion_data <- quick_completion_report(redcap_config)
-print_completion_summary(completion_data)
+# Run the report automatically if project is available
+if (exists("project") && inherits(project, "redcap_project")) {
+  cat("🔄 Running quick completion report...\n")
+  completion_data <- quick_completion_report(project)
+  print_completion_summary(completion_data)
+}
