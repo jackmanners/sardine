@@ -1,4 +1,9 @@
 sardine.*
+test_script.r
+
+# Environment variables (contains sensitive API tokens)
+.env
+.Renviron
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

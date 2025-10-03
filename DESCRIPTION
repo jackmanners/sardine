@@ -2,7 +2,7 @@ Package: sardine
 Type: Package
 Title: Structured Architecture for Research Data Integration and Evaluation
 Version: 0.1.0
-Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Authors@R: person("Jack", "Manners", email = "jack.manners@flinders.edu.au", role = c("aut", "cre"))
 Description: An R package providing a structured interface for research data integration
     and evaluation, with initial focus on REDCap API integration. The package facilitates
     secure and efficient data exchange between R and various research data platforms.
