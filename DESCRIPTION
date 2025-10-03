@@ -1,0 +1,35 @@
+Package: sardine
+Type: Package
+Title: Structured Architecture for Research Data Integration and Evaluation
+Version: 0.1.0
+Authors@R: person("First", "Last", email = "first.last@example.com", role = c("aut", "cre"))
+Description: An R package providing a structured interface for research data integration
+    and evaluation, with initial focus on REDCap API integration. The package facilitates
+    secure and efficient data exchange between R and various research data platforms.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports:
+    httr2,
+    jsonlite,
+    cli,
+    rlang,
+    glue,
+    dplyr,
+    tibble,
+    purrr,
+    stringr,
+    utils
+Suggests:
+    testthat (>= 3.0.0),
+    knitr,
+    rmarkdown,
+    covr,
+    withr,
+    httptest2
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+URL: https://github.com/jackmanners/sardine
+BugReports: https://github.com/jackmanners/sardine/issues

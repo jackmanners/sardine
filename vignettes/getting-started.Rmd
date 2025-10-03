@@ -1,0 +1,193 @@
+---
+title: "Getting Started with sardine"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting Started with sardine}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(sardine)
+```
+
+# Introduction
+
+The `sardine` package (Structured Architecture for Research Data Integration and Evaluation) provides a comprehensive and secure interface for research data integration and evaluation. This vignette will guide you through the basic functionality, with a focus on REDCap API integration.
+
+## Installation
+
+You can install the development version of sardine from GitHub:
+
+```{r eval=FALSE}
+# install.packages("devtools")
+devtools::install_github("jackmanners/sardine")
+```
+
+## Setting up a REDCap Connection
+
+The first step is to create a connection to your REDCap project using your API token:
+
+```{r eval=FALSE}
+# Create connection using direct parameters
+conn <- redcap_connection(
+  url = "https://redcap.your-institution.edu/api/",
+  token = "YOUR_API_TOKEN"
+)
+
+# Or use environment variables for security
+conn <- redcap_connection(
+  url = Sys.getenv("REDCAP_URL"),
+  token = Sys.getenv("REDCAP_TOKEN")
+)
+```
+
+### Security Best Practices
+
+For security, it's recommended to store your credentials as environment variables rather than hardcoding them in your scripts:
+
+1. Create a `.Renviron` file in your project directory or home directory
+2. Add your credentials:
+   ```
+   REDCAP_URL=https://redcap.your-institution.edu/api/
+   REDCAP_TOKEN=your_api_token_here
+   ```
+3. Restart R to load the environment variables
+
+## Testing Your Connection
+
+Always test your connection before proceeding:
+
+```{r eval=FALSE}
+if (test_connection(conn)) {
+  print("Connection successful!")
+} else {
+  print("Connection failed - check your URL and token")
+}
+```
+
+## Exploring Your Project
+
+### Get Project Information
+
+```{r eval=FALSE}
+project_info <- redcap_project_info(conn)
+print(project_info$project_title)
+print(project_info$creation_time)
+print(project_info$in_production)
+```
+
+### Get Field Names
+
+```{r eval=FALSE}
+field_names <- redcap_field_names(conn)
+head(field_names)
+```
+
+### Get Project Metadata
+
+```{r eval=FALSE}
+metadata <- redcap_metadata(conn)
+head(metadata)
+```
+
+## Exporting Data
+
+### Export All Records
+
+```{r eval=FALSE}
+all_data <- redcap_export_records(conn)
+dim(all_data)
+head(all_data)
+```
+
+### Export Specific Records
+
+```{r eval=FALSE}
+specific_records <- redcap_export_records(
+  conn,
+  records = c("001", "002", "003")
+)
+```
+
+### Export Specific Fields
+
+```{r eval=FALSE}
+demographic_data <- redcap_export_records(
+  conn,
+  fields = c("record_id", "age", "gender", "race")
+)
+```
+
+### Export with Labels
+
+```{r eval=FALSE}
+labeled_data <- redcap_export_records(
+  conn,
+  raw_or_label = "label"
+)
+```
+
+### Export with Filtering
+
+```{r eval=FALSE}
+filtered_data <- redcap_export_records(
+  conn,
+  filter_logic = "[age] > 18 and [gender] = '1'"
+)
+```
+
+## Error Handling
+
+The sardine package includes comprehensive error handling. Common issues include:
+
+- **Invalid API token**: Check that your token is correct and has appropriate permissions
+- **Network issues**: Ensure you have internet connectivity and the REDCap server is accessible
+- **Field/form names**: Verify that field and form names exist in your project
+- **Permissions**: Ensure your API token has the necessary export permissions
+
+## Advanced Usage
+
+### Exporting Specific Forms
+
+```{r eval=FALSE}
+form_data <- redcap_export_records(
+  conn,
+  forms = c("demographics", "medical_history")
+)
+```
+
+### Exporting with Survey Fields
+
+```{r eval=FALSE}
+survey_data <- redcap_export_records(
+  conn,
+  export_survey_fields = TRUE
+)
+```
+
+### Exporting with Data Access Groups
+
+```{r eval=FALSE}
+dag_data <- redcap_export_records(
+  conn,
+  export_data_access_groups = TRUE
+)
+```
+
+## Next Steps
+
+This vignette covered the basic functionality of the sardine package. For more advanced usage, including:
+
+- Data validation and cleaning functions
+- Batch processing capabilities
+- Integration with other APIs (coming in future versions)
+
+Please refer to the additional vignettes and function documentation.
