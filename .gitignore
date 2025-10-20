@@ -1,5 +1,6 @@
 sardine.*
 test_script.r
+temp.r
 
 # Environment variables (contains sensitive API tokens)
 .env

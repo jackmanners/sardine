@@ -6,16 +6,10 @@ home:
   title: sardine • Structured Architecture for Research Data Integration
   description: >
     An R package providing a structured interface for research data integration
-    and evaluation, with initial focus on REDCap API integration.
+    and evaluation, with comprehensive REDCap API integration and data quality assessment.
 
 development:
   mode: auto
-  
-home:
-  title: sardine • Structured Architecture for Research Data Integration
-  description: >
-    An R package providing a structured interface for research data integration
-    and evaluation, with initial focus on REDCap API integration.
   
 navbar:
   structure:
@@ -44,12 +38,34 @@ reference:
       - redcap_project_info
       - redcap_metadata
       - redcap_field_names
+      
+  - title: "Data Quality & Validation"
+    desc: "Comprehensive data quality assessment and validation"
+    contents:
+      - analyze_missing_data
+      - validate_data_types
+      - generate_data_quality_report
+      - print.missing_data_analysis
+      - print.data_type_validation
+      - print.data_quality_report
+      
+  - title: "Testing & Examples"
+    desc: "Sample data and testing utilities"
+    contents:
+      - create_sample_redcap_project
+      - data-validation
+      - validation-examples
 
 articles:
   - title: "Getting Started"
     navbar: ~
     contents:
       - getting-started
+      
+  - title: "Data Quality & Validation"
+    desc: "Comprehensive data quality assessment"
+    contents:
+      - data-quality-validation
       
   - title: "REDCap Guides"
     desc: "Comprehensive guides for REDCap data management"

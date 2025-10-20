@@ -1,9 +1,8 @@
-#' REDCap Project Object
+#' Internal REDCap Project Creation Function
 #'
 #' @description
-#' Creates a REDCap project object that provides an object-oriented interface
-#' to a REDCap project. The project object tests connectivity on creation,
-#' caches the full dataset, and provides methods for data access and manipulation.
+#' Internal function that creates a REDCap project object. Users should use 
+#' the main redcap_project() function instead of calling this directly.
 #'
 #' @param url Character string. The REDCap API URL (e.g., "https://redcap.example.edu/api/")
 #' @param token Character string. Your REDCap API token
@@ -11,43 +10,8 @@
 #' @param timeout Numeric. Request timeout in seconds (default: 30)
 #'
 #' @return A redcap_project object with cached data and methods
-#'
-#' @section Methods:
-#' \describe{
-#'   \item{\code{$data}}{Full cached dataset from the project}
-#'   \item{\code{$metadata}}{Project metadata (field definitions)}
-#'   \item{\code{$project_info}}{Basic project information}
-#'   \item{\code{$refresh()}}{Refresh cached data from REDCap}
-#'   \item{\code{$info()}}{Display project summary}
-#' }
-#'
-#' @section Usage with other functions:
-#' \describe{
-#'   \item{\code{export_records(project, fields)}}{Export specific fields}
-#'   \item{\code{import_records(project, data)}}{Import data to REDCap}
-#'   \item{\code{export_instruments(project)}}{Export form information}
-#' }
-#'
-#' @examples
-#' \dontrun{
-#' # Create project (tests connection and caches data)
-#' project <- redcap_project(
-#'   url = "https://redcap.example.edu/api/",
-#'   token = "YOUR_API_TOKEN"
-#' )
-#'
-#' # Access full data
-#' all_data <- project$data
-#'
-#' # Get specific fields
-#' subset_data <- export_records(project, fields = c("record_id", "age", "gender"))
-#'
-#' # View project info
-#' project$info()
-#' }
-#'
-#' @export
-redcap_project <- function(url, token, ssl_verify = TRUE, timeout = 30) {
+#' @keywords internal
+.redcap_project_internal <- function(url, token, ssl_verify = TRUE, timeout = 30) {
   
   # Validate inputs
   if (missing(url) || is.null(url) || url == "") {
@@ -168,39 +132,7 @@ redcap_project <- function(url, token, ssl_verify = TRUE, timeout = 30) {
 #' Create REDCap Project from Environment Variables
 #'
 #' @description
-#' Creates a REDCap project using environment variables for configuration.
-#' This is a convenience wrapper around redcap_project().
-#'
-#' @param env_prefix Character string. Prefix for environment variables (default: "REDCAP")
-#'
-#' @return A redcap_project object
-#'
-#' @examples
-#' \dontrun{
-#' # Using default REDCAP_URL and REDCAP_TOKEN
-#' project <- redcap_project_from_env()
-#'
-#' # Using alternative environment variables
-#' project <- redcap_project_from_env("REDCAP_2")
-#' }
-#'
-#' @export
-redcap_project_from_env <- function(env_prefix = "REDCAP") {
-  
-  url_var <- paste0(env_prefix, "_URL")
-  token_var <- paste0(env_prefix, "_TOKEN")
-  
-  url <- Sys.getenv(url_var)
-  token <- Sys.getenv(token_var)
-  
-  if (url == "" || token == "") {
-    cli::cli_alert_danger("Environment variables {url_var} and {token_var} must be set")
-    cli::cli_alert_info("Use load_env() to load from .env file")
-    stop("Missing required environment variables", call. = FALSE)
-  }
-  
-  return(redcap_project(url = url, token = token))
-}
+
 
 # Internal helper functions
 .redcap_get_project_info <- function(connection) {

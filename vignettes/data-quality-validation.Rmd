@@ -1,0 +1,252 @@
+---
+title: "Data Quality and Validation in sardine"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Data Quality and Validation in sardine}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Introduction
+
+The `sardine` package now includes comprehensive data quality and validation tools specifically designed for REDCap projects. These tools help identify missing data patterns, validate data types against your REDCap data dictionary, and generate quality reports.
+
+## Setup
+
+```{r setup, eval=FALSE}
+library(sardine)
+library(dplyr)
+
+# Connect to your REDCap project
+project <- redcap_project_from_env()
+
+# Or use the sample project for testing
+sample_project <- create_sample_redcap_project()
+```
+
+## Quick Quality Assessment
+
+The fastest way to assess data quality is with the comprehensive quality report:
+
+```{r quality-report, eval=FALSE}
+# Generate complete quality report
+quality_report <- generate_data_quality_report(
+  project,
+  missing_threshold = 0.15,     # Flag fields with >15% missing data
+  include_validation = TRUE,    # Include data type validation
+  output_file = "quality_report.md"  # Optional: save to file
+)
+
+# View the report
+print(quality_report)
+```
+
+This provides:
+- Executive summary with key metrics
+- Missing data analysis by field and form
+- Data type validation against REDCap dictionary
+- Prioritized list of data quality issues
+
+## Missing Data Analysis
+
+For detailed missing data analysis:
+
+```{r missing-analysis, eval=FALSE}
+# Comprehensive missing data analysis
+missing_analysis <- analyze_missing_data(
+  project,
+  by_form = TRUE,      # Analyze by REDCap form
+  by_field = TRUE,     # Analyze by individual field
+  by_record = FALSE,   # Optionally analyze by record
+  threshold = 0.20     # Flag fields with >20% missing
+)
+
+# View results
+print(missing_analysis)
+
+# Access specific components
+missing_analysis$summary              # Overall statistics
+missing_analysis$by_field            # Field-level details
+missing_analysis$by_form             # Form-level summary
+missing_analysis$high_missing_fields # Count of flagged fields
+```
+
+### Understanding Missing Data Results
+
+The analysis provides several perspectives:
+
+**Field-level analysis** shows:
+- Missing count and percentage for each field
+- Fields flagged as having high missing rates
+- Field labels and forms for context
+
+**Form-level analysis** shows:
+- Overall missing rate by REDCap form
+- Number of fields in each form
+- Which forms have concerning missing data patterns
+
+**Executive summary** provides:
+- Total records and fields
+- Overall missing data rate
+- Count of problematic fields/forms
+
+## Data Type Validation
+
+Validate that your data matches the REDCap data dictionary:
+
+```{r validation, eval=FALSE}
+# Validate data types against REDCap dictionary
+validation_results <- validate_data_types(
+  project,
+  strict = TRUE  # Apply strict validation rules
+)
+
+# View results
+print(validation_results)
+
+# Access detailed issues
+validation_results$issues   # Issues by field
+validation_results$summary  # Validation summary
+```
+
+### Types of Validation Issues
+
+The validation identifies several types of problems:
+
+**Numeric Fields**: Non-numeric values in fields expecting numbers
+```
+Field: age (text with integer validation)
+Issue: non_numeric_values - Count: 3
+Examples: "twenty-five", "thirty", "N/A"
+```
+
+**Range Validation**: Values outside specified min/max ranges
+```
+Field: bp_systolic (range 80-200)
+Issue: above_maximum - Count: 2
+Examples: 220, 250
+```
+
+**Choice Fields**: Invalid values in radio/dropdown fields
+```
+Field: gender (Male/Female)
+Issue: invalid_choice_values - Count: 5
+Examples: "M", "F", "Other"
+```
+
+**Yes/No Fields**: Invalid values in yes/no fields
+```
+Field: diabetes_history (yes/no)
+Issue: invalid_yesno_values - Count: 3
+Examples: "Yes", "No", "Unknown"
+```
+
+## Working with Results
+
+### Prioritizing Issues
+
+Focus on the most impactful problems first:
+
+```{r prioritize, eval=FALSE}
+# Fields with the highest missing rates
+high_missing <- missing_analysis$by_field %>%
+  filter(above_threshold) %>%
+  arrange(desc(missing_rate))
+
+# Forms needing attention
+problem_forms <- missing_analysis$by_form %>%
+  filter(above_threshold)
+
+# Critical validation issues
+critical_issues <- validation_results$issues %>%
+  # Focus on fields with many issues
+  map_int(~length(.x$issues)) %>%
+  sort(decreasing = TRUE)
+```
+
+### Exporting Reports
+
+Generate reports for sharing with your team:
+
+```{r export, eval=FALSE}
+# Save comprehensive report
+generate_data_quality_report(
+  project,
+  missing_threshold = 0.10,
+  output_file = paste0("quality_report_", Sys.Date(), ".md")
+)
+
+# The markdown file includes formatted tables and can be
+# converted to PDF or HTML for sharing
+```
+
+## Best Practices
+
+### Regular Quality Checks
+
+Incorporate quality checks into your workflow:
+
+```{r workflow, eval=FALSE}
+# Weekly quality check
+weekly_check <- function(project) {
+  report <- generate_data_quality_report(
+    project,
+    missing_threshold = 0.15
+  )
+  
+  # Alert if issues exceed threshold
+  if (report$summary$high_missing_fields > 5) {
+    warning("High missing data detected in ", 
+            report$summary$high_missing_fields, " fields")
+  }
+  
+  return(report)
+}
+```
+
+### Setting Appropriate Thresholds
+
+Choose missing data thresholds based on your study:
+
+- **Low-tolerance studies** (clinical trials): 5-10%
+- **Survey research**: 15-25%
+- **Longitudinal studies**: 20-30%
+- **Pilot studies**: 30-50%
+
+### Validation in Different Study Phases
+
+Adjust validation strictness by study phase:
+
+```{r phases, eval=FALSE}
+# During data collection - loose validation
+pilot_validation <- validate_data_types(project, strict = FALSE)
+
+# Before analysis - strict validation
+final_validation <- validate_data_types(project, strict = TRUE)
+```
+
+## Integration with REDCap Workflow
+
+These tools complement REDCap's built-in features:
+
+1. **Data Entry Rules**: Use validation results to create better field validation in REDCap
+2. **Missing Data Reports**: Supplement REDCap's data completion reports
+3. **Quality Assurance**: Identify systematic data entry issues
+4. **Training**: Use validation results to improve data entry training
+
+## Next Steps
+
+The validation tools provide the foundation for:
+- Automated quality monitoring
+- Data cleaning protocols  
+- Research data management workflows
+- Integration with other sardine features (coming soon!)
+
+For more advanced usage and integration with cross-project analysis, see the sardine roadmap in the main README.

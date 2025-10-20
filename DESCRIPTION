@@ -4,7 +4,7 @@ Title: Structured Architecture for Research Data Integration and Evaluation
 Version: 0.1.0
 Authors@R: person("Jack", "Manners", email = "jack.manners@flinders.edu.au", role = c("aut", "cre"))
 Description: Provides a structured, object-oriented interface for research data integration
-    and evaluation, with initial focus on REDCap (Research Electronic Data Capture) API 
+    and evaluation, with initial focus on 'REDCap' (Research Electronic Data Capture) API 
     integration. The package facilitates secure and efficient data exchange between R and 
     various research data platforms through modern, cached project objects and comprehensive 
     reporting capabilities.
@@ -24,7 +24,9 @@ Imports:
     purrr,
     stringr,
     utils,
-    dotenv
+    dotenv,
+    tidyr,
+    scales
 Suggests:
     testthat (>= 3.0.0),
     knitr,

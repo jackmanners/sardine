@@ -16,7 +16,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #'
 #' # Export specific fields
 #' demographics <- export_records(project, fields = c("record_id", "age", "gender"))
@@ -102,7 +102,7 @@ export_records <- function(project, records = NULL, fields = NULL, events = NULL
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #'
 #' # Import new records
 #' new_data <- tibble::tibble(
@@ -175,7 +175,7 @@ import_records <- function(project, data, overwrite_behavior = "normal",
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #' instruments <- export_instruments(project)
 #' }
 #'
@@ -217,7 +217,7 @@ export_instruments <- function(project, return_format = "json") {
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #' events <- export_events(project)
 #' }
 #'
@@ -264,7 +264,7 @@ export_events <- function(project, arms = NULL, return_format = "json") {
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #' users <- export_users(project)
 #' }
 #'
@@ -306,7 +306,7 @@ export_users <- function(project, return_format = "json") {
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #' mappings <- export_instrument_event_mappings(project)
 #' }
 #'

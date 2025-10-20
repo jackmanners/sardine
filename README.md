@@ -15,9 +15,10 @@
 ## Key Features
 
 - **Object-Oriented Design**: Project objects that test connections automatically and cache data for performance
+- **Data Quality & Validation**: Comprehensive missing data analysis and data type validation against REDCap dictionaries
 - **Fail-Fast Error Handling**: Connection issues caught immediately during project creation
 - **Data Caching**: Full datasets cached on project creation, with manual refresh capabilities
-- **Clean Method Names**: No `redcap_` prefixes - `export_records()` vs `redcap_export_records()`
+- **Quality Reporting**: Professional data quality reports with executive summaries and detailed breakdowns
 - **Import Warnings**: Alerts when imports make cached data outdated
 - **Comprehensive REDCap Coverage**: All major REDCap API endpoints supported
 - **Modular Architecture**: Base classes ready for additional API sources (Qualtrics, etc.)
@@ -98,7 +99,26 @@ result <- import_records(project, new_data)
 project$refresh()
 ```
 
-### 5. Generate Reports
+### 5. Data Quality Assessment
+
+```r
+# Comprehensive data quality report
+quality_report <- generate_data_quality_report(
+  project,
+  missing_threshold = 0.15  # Flag fields with >15% missing data
+)
+print(quality_report)
+
+# Detailed missing data analysis
+missing_analysis <- analyze_missing_data(project, threshold = 0.20)
+print(missing_analysis)
+
+# Data type validation against REDCap dictionary
+validation <- validate_data_types(project)
+print(validation)
+```
+
+### 6. Generate Reports
 
 ```r
 # Participant completion report
@@ -107,7 +127,9 @@ print_completion_report(completion)
 
 # Quick completion summary
 quick_report <- quick_completion_report(project)
-### 6. Project Metadata
+```
+
+### 7. Project Metadata
 
 ```r
 # Access project metadata (cached automatically)
@@ -123,11 +145,46 @@ fresh_instruments <- export_instruments(project)
 ## Features
 
 - **Object-oriented interface**: Work with `redcap_project()` objects that cache data and metadata
+- **Data quality assessment**: Comprehensive missing data analysis and data type validation
+- **Professional reporting**: Executive summaries, detailed breakdowns, and exportable quality reports
 - **Environment management**: Secure credential handling with `.env` files  
 - **Clean API**: Intuitive methods for data operations
 - **Comprehensive reporting**: Built-in participant completion analysis
 - **Fail-fast validation**: Automatic connection testing and error handling
 - **Data caching**: Automatic caching with smart refresh capabilities
+
+## Future Development Roadmap
+
+The following features are planned for future releases, prioritized by user feedback:
+
+### ✅ Priority 1: Data Quality & Validation - COMPLETED
+
+- ✅ Missing data analysis and reporting
+- ✅ Data type validation against REDCap dictionary
+- ✅ Range and logic checks
+- ✅ Data completeness metrics
+- ✅ Quality control dashboards
+
+### Priority 2: Cross-Project Integration
+
+- Record matching between projects
+- Data piping from one REDCap project to another
+- Cross-project analytics and reporting
+- Automated data synchronization
+
+### Priority 3: Analytics & Reporting
+
+- Table 1 generation for descriptive statistics
+- Automated codebook creation
+- Statistical summaries and visualizations
+- Export-ready analysis datasets
+
+### Later Priorities
+
+- Survey management enhancements
+- Advanced backup and versioning
+- Workflow automation tools
+- Third-party integrations (Qualtrics, etc.)
 
 ## Documentation
 
@@ -136,6 +193,46 @@ For detailed guides and examples, see the package vignettes:
 - [Getting Started with REDCap Data Extraction](vignettes/redcap-data-extraction.Rmd)
 - [Importing Data into REDCap](vignettes/redcap-data-import.Rmd)  
 - [Participant Completion Reporting](vignettes/redcap-reporting.Rmd)
+- [Data Quality and Validation](vignettes/data-quality-validation.Rmd)
+
+## Data Quality & Validation
+
+`sardine` includes comprehensive data quality assessment tools:
+
+```r
+# Quick quality assessment
+quality_report <- generate_data_quality_report(project)
+print(quality_report)
+
+# Focus on fields with high missing rates
+missing_analysis <- analyze_missing_data(
+  project, 
+  threshold = 0.15,  # Flag fields >15% missing
+  by_form = TRUE,    # Group by REDCap forms
+  by_field = TRUE    # Individual field analysis
+)
+
+# Find data entry errors and validation issues
+validation <- validate_data_types(project, strict = TRUE)
+
+# Export professional reports for sharing
+generate_data_quality_report(
+  project,
+  output_file = "quality_report.md"
+)
+
+# Test with sample data
+sample_project <- create_sample_redcap_project()
+demo_report <- generate_data_quality_report(sample_project)
+```
+
+### Quality Assessment Features
+
+- **Missing Data Analysis**: Field-level, form-level, and record-level missing data patterns
+- **Data Type Validation**: Validate against REDCap data dictionary (numeric, choice, range validation)
+- **Executive Reporting**: Professional summaries with key metrics and recommendations
+- **Flexible Thresholds**: Configurable alerting for different study types and phases
+- **Export Capabilities**: Generate markdown reports for team sharing and documentation
 
 ## Advanced Usage
 
@@ -153,6 +250,15 @@ logs <- export_logging(project, begin_time = "2023-01-01 00:00")
 # Create project backups
 project_xml <- export_project_xml(project)
 writeLines(project_xml, "backup.xml")
+
+# Integrate quality checks into workflow
+weekly_quality_check <- function(project) {
+  report <- generate_data_quality_report(project, missing_threshold = 0.10)
+  if (report$summary$high_missing_fields > 5) {
+    warning("Data quality issues detected - review needed")
+  }
+  return(report)
+}
 ```
 
 ## Security Considerations

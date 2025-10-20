@@ -24,7 +24,6 @@ data platforms including Qualtrics, SurveyMonkey, and database connections.
 
 \itemize{
 \item{\code{\link{redcap_project}}: Create a REDCap project object (tests connection, caches data)}
-\item{\code{\link{redcap_project_from_env}}: Create REDCap project from environment variables}
 \item{\code{\link{load_env}}: Load environment configuration from .env file}
 \item{\code{\link{create_env_template}}: Create .env template file}
 }
@@ -46,7 +45,7 @@ data platforms including Qualtrics, SurveyMonkey, and database connections.
 
 \preformatted{
 # Create project (connects and caches data)
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 # Access full cached data
 all_data <- project$data

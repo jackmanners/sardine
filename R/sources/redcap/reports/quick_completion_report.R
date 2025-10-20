@@ -7,7 +7,7 @@ library(dplyr)
 
 # Load environment and connect
 load_dot_env()
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 #' Quick Participant Completion Summary
 #' 
