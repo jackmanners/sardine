@@ -81,12 +81,12 @@ sardine_connection <- function(source, url, token, ssl_verify = TRUE, timeout = 
   return(connection)
 }
 
-#' Print method for sardine_connection objects
+#' Print method for sardine connection
 #'
 #' @param x A sardine_connection object
 #' @param ... Additional arguments (not used)
 #'
-#' @export
+#' @exportS3method print sardine_connection
 print.sardine_connection <- function(x, ...) {
   cat("Sardine Connection Object\n")
   cat("=========================\n")

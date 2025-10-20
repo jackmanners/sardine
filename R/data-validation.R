@@ -1,5 +1,5 @@
-#' Data Qua#' @name data-validation
-NULL and Validation Functions
+#+ data-validation-doc ---------------------------------------------------------
+#' Data Quality and Validation Functions
 #'
 #' @description
 #' Functions for assessing and validating data quality in REDCap projects,
@@ -9,24 +9,6 @@ NULL and Validation Functions
 #' @importFrom tidyr pivot_longer
 #' @importFrom scales percent
 #' @importFrom stringr str_extract_all str_remove str_trim
-#'
-#' @name data-validation
-NULLortFrom stringr str_extract_all str_remove str_trimand Validatio#' @examples
-#' \dontrun{
-#' project <- redcap_project()
-#' analysis <- analyze_missing_data(project)nctions
-#'
-#' @description
-#' Functions for assessing and validating data quality in REDCap projects,
-#' including missing data analysis, data type validation, and quality metrics.
-#'
-#' @importFrom dplyr select summarise_all mutate arrange filter left_join group_by summarise n n_distinct slice_head rowwise c_across slice all_of bind_rows pull
-#' @importFrom tidyr pivot_longer
-#' @importFrom scales percent
-#' @importFrom stringr str_ext#' @examples
-#' \dontrun{
-#' project <- redcap_project()
-#' report <- generate_data_quality_report(project)_all str_remove str_trim
 #'
 #' @name data-validation
 NULL

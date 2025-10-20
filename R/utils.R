@@ -9,6 +9,23 @@
 #' @return Logical. TRUE if connection is successful, FALSE otherwise
 #'
 #' @export
+#' @rdname test_connection
+#' @examples
+#' \dontrun{
+#'   conn <- redcap_connection(url = "https://example/api/", token = "TOKEN")
+#'   ok <- test_connection(conn)
+#' }
+
+test_connection <- function(connection, ...) {
+  UseMethod("test_connection")
+}
+
+#' @export
+test_connection.default <- function(connection, ...) {
+  rlang::abort("No test_connection method for objects of this class")
+}
+
+#' @export
 test_connection.redcap_connection <- function(connection) {
   tryCatch({
     # Make a simple request to get project information

@@ -54,7 +54,7 @@ load_env()
 
 ```r
 # Create project (tests connection & caches data automatically)
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 # View project information  
 project$info()

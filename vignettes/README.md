@@ -11,6 +11,7 @@ This directory contains comprehensive guides for using the sardine package with 
 Detailed guides for common REDCap tasks using the sardine package:
 
 ### Core Operations
+
 - **[01-data-extraction.Rmd](redcap/01-data-extraction.html)** - Comprehensive guide to extracting data from REDCap projects
 - **[02-data-import.Rmd](redcap/02-data-import.html)** - Importing data into REDCap with validation and best practices
 - **[03-report-generation.Rmd](redcap/03-report-generation.html)** - Generating completion reports and data quality summaries
@@ -18,16 +19,19 @@ Detailed guides for common REDCap tasks using the sardine package:
 ## Key Features Covered
 
 ### Object-Oriented Design
+
 - Creating project objects that cache data and test connections automatically
 - Using clean method names without `redcap_` prefixes
 - Fail-fast error handling and validation
 
 ### Data Management
+
 - Efficient data caching to reduce API calls
 - Targeted data extraction for specific analyses
 - Import warnings and cache management
 
 ### Reporting & Analytics
+
 - Participant completion tracking
 - Data quality and missing data reports
 - Automated and scheduled reporting
@@ -36,13 +40,14 @@ Detailed guides for common REDCap tasks using the sardine package:
 ## Quick Reference
 
 ### Basic Usage Pattern
+
 ```r
 # Setup (one-time)
 create_env_template()  # Edit .env with credentials
 load_env()
 
 # Create project
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 # Access data
 all_data <- project$data
@@ -54,6 +59,7 @@ print_completion_report(completion)
 ```
 
 ### Migration from Old Approach
+
 ```r
 # Old way (deprecated)
 conn <- redcap_connection(url, token)

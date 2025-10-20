@@ -1,0 +1,171 @@
+#' Internal REDCap Project Creation Function
+#'
+#' @description
+#' Internal function that creates a REDCap project object. Users should use 
+#' the main redcap_project() function instead of calling this directly.
+#'
+#' @param url Character string. The REDCap API URL (e.g., "https://redcap.example.edu/api/")
+#' @param token Character string. Your REDCap API token
+#' @param ssl_verify Logical. Whether to verify SSL certificates (default: TRUE)
+#' @param timeout Numeric. Request timeout in seconds (default: 30)
+#'
+#' @return A redcap_project object with cached data and methods
+#' @keywords internal
+.redcap_project_internal <- function(url, token, ssl_verify = TRUE, timeout = 30) {
+  # Validate inputs
+  if (missing(url) || is.null(url) || url == "") {
+    stop("REDCap URL is required")
+  }
+  if (missing(token) || is.null(token) || token == "") {
+    stop("REDCap API token is required")
+  }
+
+  # Validate REDCap-specific URL format
+  if (!stringr::str_detect(url, "/api/?$")) {
+    cli::cli_alert_warning("URL should end with '/api/' for REDCap projects")
+    if (!stringr::str_detect(url, "/api")) {
+      url <- paste0(stringr::str_remove(url, "/$"), "/api/")
+      cli::cli_alert_info("Auto-corrected URL to: {url}")
+    }
+  }
+
+  cli::cli_alert_info("Creating REDCap project connection...")
+
+  # Create base connection for API calls
+  connection <- list(
+    url = url,
+    token = token,
+    ssl_verify = ssl_verify,
+    timeout = timeout
+  )
+
+  # Test connection and get project info
+  cli::cli_alert_info("Testing connection and fetching project information...")
+  tryCatch({
+    project_info <- .redcap_get_project_info(connection)
+  }, error = function(e) {
+    cli::cli_alert_danger("Failed to connect to REDCap project")
+    cli::cli_alert_danger("Error: {e$message}")
+    stop("REDCap project creation failed. Check your URL and token.", call. = FALSE)
+  })
+
+  cli::cli_alert_success("Connected to REDCap project: {project_info$project_title}")
+
+  # Get metadata
+  cli::cli_alert_info("Fetching project metadata...")
+  metadata <- tryCatch({
+    .redcap_get_metadata(connection)
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not fetch metadata: {e$message}")
+    NULL
+  })
+
+  # Get full dataset
+  cli::cli_alert_info("Caching full dataset...")
+  data <- tryCatch({
+    dat <- .redcap_get_all_records(connection)
+    cli::cli_alert_success("Cached {nrow(dat)} records with {ncol(dat)} fields")
+    dat
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not fetch data: {e$message}")
+    NULL
+  })
+
+  # Create project object
+  project <- list(
+    .connection = connection,
+    .created_at = Sys.time(),
+    data = data,
+    metadata = metadata,
+    project_info = project_info,
+    refresh = function() {
+      cli::cli_alert_info("Refreshing data from REDCap...")
+      tryCatch({
+        project$data <<- .redcap_get_all_records(connection)
+        cli::cli_alert_success("Data refreshed: {nrow(project$data)} records")
+        invisible(project$data)
+      }, error = function(e) {
+        cli::cli_alert_danger("Failed to refresh data: {e$message}")
+        invisible(NULL)
+      })
+    },
+    info = function() {
+      cat("REDCap Project\n")
+      cat("==============\n\n")
+      cat("Title:", project_info$project_title, "\n")
+      cat("URL:", stringr::str_remove(url, "/api/?$"), "\n")
+      cat("Created:", format(.created_at, "%Y-%m-%d %H:%M:%S"), "\n")
+      if (!is.null(data)) cat("Cached Data:", nrow(data), "records,", ncol(data), "fields\n") else cat("Cached Data: None\n")
+      if (!is.null(metadata)) cat("Metadata:", nrow(metadata), "fields defined\n")
+      cat("\nAccess data with: project$data\n")
+      cat("Refresh data with: project$refresh()\n")
+      cat("Export specific fields with: export_records(project, fields = c(...))\n")
+      invisible(project)
+    }
+  )
+  class(project) <- c("redcap_project", "sardine_project")
+  project
+}
+
+# Internal helper functions --------------------------------------------------
+.redcap_get_project_info <- function(connection) {
+  response <- httr2::request(connection$url) %>%
+    httr2::req_timeout(connection$timeout) %>%
+    httr2::req_headers("Accept" = "application/json") %>%
+    httr2::req_body_form(
+      token = connection$token,
+      content = "project",
+      format = "json"
+    ) %>%
+    httr2::req_perform()
+  if (httr2::resp_is_error(response)) {
+    stop("HTTP error ", httr2::resp_status(response), ": ", httr2::resp_body_string(response))
+  }
+  httr2::resp_body_json(response)
+}
+
+.redcap_get_metadata <- function(connection) {
+  response <- httr2::request(connection$url) %>%
+    httr2::req_timeout(connection$timeout) %>%
+    httr2::req_headers("Accept" = "application/json") %>%
+    httr2::req_body_form(
+      token = connection$token,
+      content = "metadata",
+      format = "json"
+    ) %>%
+    httr2::req_perform()
+  if (httr2::resp_is_error(response)) {
+    stop("HTTP error ", httr2::resp_status(response))
+  }
+  metadata <- httr2::resp_body_json(response, simplifyVector = TRUE)
+  tibble::as_tibble(metadata)
+}
+
+.redcap_get_all_records <- function(connection) {
+  response <- httr2::request(connection$url) %>%
+    httr2::req_timeout(connection$timeout) %>%
+    httr2::req_headers("Accept" = "application/json") %>%
+    httr2::req_body_form(
+      token = connection$token,
+      content = "record",
+      format = "json",
+      type = "flat"
+    ) %>%
+    httr2::req_perform()
+  if (httr2::resp_is_error(response)) {
+    stop("HTTP error ", httr2::resp_status(response))
+  }
+  data <- httr2::resp_body_json(response, simplifyVector = TRUE)
+  tibble::as_tibble(data)
+}
+
+#' Print Method for REDCap Projects
+#'
+#' @param x A redcap_project object
+#' @param ... Additional arguments (unused)
+#'
+#' @export
+print.redcap_project <- function(x, ...) {
+  x$info()
+  invisible(x)
+}
