@@ -18,11 +18,14 @@ knitr::opts_chunk$set(
 library(sardine)
 ```
 
+
 The sardine package provides a modern, object-oriented interface for working with research data APIs, starting with comprehensive REDCap support.
 
 # Introduction
 
+
 The `sardine` package (Structured Architecture for Research Data Integration and Evaluation) provides a comprehensive and secure interface for research data integration and evaluation. This vignette will guide you through the basic functionality, with a focus on REDCap API integration.
+
 
 ## Installation
 
@@ -35,7 +38,7 @@ devtools::install_github("jackmanners/sardine")
 
 ## Setting up Your REDCap Project
 
-The first step is to create a REDCap project object. This will test your connection and cache project metadata:
+The first step is to create a REDCap project object. This will test your connection and cache project metadata. If it fails, check your credentials and API token.
 
 ```{r eval=FALSE}
 # Create project using direct parameters
@@ -44,103 +47,277 @@ project <- redcap_project(
   token = "YOUR_API_TOKEN"
 )
 
-# Or use environment variables for security (recommended)
-project <- redcap_project_from_env()
+# Or use environment variables for security (recommended - see below)
+project <- redcap_project()
 ```
 
 ### Security Best Practices
 
-For security, it's recommended to store your credentials as environment variables rather than hardcoding them in your scripts:
+
+For security, it's recommended to store your credentials as environment variables rather than hardcoding them in your scripts. 
 
 1. Create a `.Renviron` file in your project directory or home directory
 2. Add your credentials:
+
    ```
    REDCAP_URL=https://redcap.your-institution.edu/api/
    REDCAP_TOKEN=your_api_token_here
    ```
+
 3. Restart R to load the environment variables
 
-## Testing Your Connection
 
-Always test your connection before proceeding:
+Accessing Data
 
-```{r eval=FALSE}
-if (test_connection(conn)) {
-  print("Connection successful!")
-} else {
-  print("Connection failed - check your URL and token")
-}
-```
-
-## Exploring Your Project
-
-### Get Project Information
+The REDCap project object automatically caches all records when created. Access the data directly:
 
 ```{r eval=FALSE}
-project_info <- redcap_project_info(conn)
-print(project_info$project_title)
-print(project_info$creation_time)
-print(project_info$in_production)
-```
-
-### Get Field Names
-
-```{r eval=FALSE}
-field_names <- redcap_field_names(conn)
-head(field_names)
-```
-
-### Get Project Metadata
-
-```{r eval=FALSE}
-metadata <- redcap_metadata(conn)
-head(metadata)
-```
-
-## Exporting Data
-
-### Export All Records
-
-```{r eval=FALSE}
-all_data <- redcap_export_records(conn)
+all_data <- project$data
 dim(all_data)
 head(all_data)
 ```
 
-### Export Specific Records
+### Filtering Records
+
+
+Use standard dplyr operations to filter and manipulate your data:
 
 ```{r eval=FALSE}
-specific_records <- redcap_export_records(
-  conn,
-  records = c("001", "002", "003")
-)
+library(dplyr)
+
+# Filter specific records
+specific_records <- project$data %>%
+  filter(record_id %in% c("001", "002", "003"))
+
+# Filter by field values
+adults <- project$data %>%
+  filter(age >= 18)
+
+# Filter by completion status (2 = complete)
+complete_baseline <- project$data %>%
+  filter(baseline_survey_complete == 2)
+
+# Complex filtering
+eligible_participants <- project$data %>%
+  filter(
+    age >= 18,
+    age <= 65,
+    consent_complete == 2,
+    !is.na(enrollment_date)
+  )
 ```
 
-### Export Specific Fields
+### Selecting Specific Fields
 
 ```{r eval=FALSE}
-demographic_data <- redcap_export_records(
-  conn,
-  fields = c("record_id", "age", "gender", "race")
-)
+# Select specific fields
+demographic_data <- project$data %>%
+  select(record_id, age, gender, race, ethnicity)
+
+# Select by pattern (all fields from a form)
+baseline_data <- project$data %>%
+  select(record_id, starts_with("baseline_"))
+
+# Select by field type using metadata
+numeric_fields <- project$metadata %>%
+  filter(text_validation_type_or_show_slider_number %in% c("integer", "number")) %>%
+  pull(field_name)
+
+numeric_data <- project$data %>%
+  select(record_id, all_of(numeric_fields))
 ```
 
-### Export with Labels
+### Combining Operations
 
 ```{r eval=FALSE}
-labeled_data <- redcap_export_records(
-  conn,
-  raw_or_label = "label"
-)
+# Chain multiple operations
+analysis_dataset <- project$data %>%
+  filter(age >= 18, consent_complete == 2) %>%
+  select(record_id, age, gender, starts_with("outcome_")) %>%
+  mutate(age_group = cut(age, breaks = c(18, 30, 50, 65, 100)))
 ```
 
-### Export with Filtering
+### Accessing Metadata
+
+The project object automatically caches metadata which provides rich information about your fields:
 
 ```{r eval=FALSE}
-filtered_data <- redcap_export_records(
-  conn,
-  filter_logic = "[age] > 18 and [gender] = '1'"
-)
+# View field metadata
+metadata <- project$metadata
+head(metadata)
+
+# Explore metadata structure
+names(metadata)
+
+# Get field information
+field_info <- metadata %>%
+  select(field_name, field_label, field_type, required_field)
+
+# Find all choice fields (radio, dropdown, checkbox)
+choice_fields <- metadata %>%
+  filter(field_type %in% c("radio", "dropdown", "checkbox")) %>%
+  select(field_name, field_label, select_choices_or_calculations)
+
+# Find validated fields
+validated_fields <- metadata %>%
+  filter(!is.na(text_validation_type_or_show_slider_number)) %>%
+  select(field_name, field_label, text_validation_type_or_show_slider_number)
+
+# Find required fields
+required_fields <- metadata %>%
+  filter(required_field == "y") %>%
+  pull(field_name)
+
+# Count field types
+metadata %>%
+  count(field_type, sort = TRUE)
+```
+
+### Using Metadata with Data
+
+```{r eval=FALSE}
+# Create a labeled dataset
+labeled_data <- project$data %>%
+  select(record_id, age, gender)
+
+# Add field labels as attributes (useful for reports)
+for (field in names(labeled_data)[-1]) {
+  label_text <- metadata %>%
+    filter(field_name == field) %>%
+    pull(field_label)
+  
+  if (length(label_text) > 0) {
+    attr(labeled_data[[field]], "label") <- label_text
+  }
+}
+
+# Get form names for fields
+field_forms <- metadata %>%
+  select(field_name, form_name)
+```
+
+## Advanced Usage
+
+### Refreshing Data
+
+If data changes in REDCap (through the web interface or other processes), refresh your local cache:
+
+```{r eval=FALSE}
+# Refresh data from REDCap to get latest updates
+project$refresh()
+
+# The project$data is now updated
+updated_data <- project$data
+```
+
+### Project Information
+
+View comprehensive information about your project:
+
+```{r eval=FALSE}
+# Display project information
+project$info()
+
+# This shows:
+# - Project title
+# - REDCap URL
+# - When the project object was created
+# - Number of cached records and fields
+# - Number of metadata fields
+# - Usage instructions
+```
+
+### Accessing Project Details
+
+```{r eval=FALSE}
+# Access project information directly
+project_info <- project$project_info
+
+# Available properties vary by project but typically include:
+print(project_info$project_title)
+print(project_info$project_language)
+print(project_info$is_longitudinal)
+print(project_info$purpose)
+print(project_info$purpose_other)
+print(project_info$record_autonumbering_enabled)
+
+# View all available project information
+str(project_info)
+```
+
+### Working with the Project Object
+
+The project object has several components:
+
+```{r eval=FALSE}
+# Data and metadata (primary usage)
+data <- project$data              # Full dataset (tibble)
+metadata <- project$metadata      # Field metadata
+info <- project$project_info     # Project settings
+
+# Methods
+project$info()      # Display project information
+project$refresh()   # Refresh data from REDCap
+
+# Internal properties (advanced)
+project$.connection  # Connection details
+project$.created_at  # Timestamp of object creation
+```
+
+### Data Quality Checks
+
+Integrate data quality checks into your workflow:
+
+```{r eval=FALSE}
+library(dplyr)
+
+# Check for missing critical fields
+missing_critical <- project$data %>%
+  filter(is.na(consent_date) | is.na(enrollment_date)) %>%
+  select(record_id, consent_date, enrollment_date)
+
+if (nrow(missing_critical) > 0) {
+  warning("Found ", nrow(missing_critical), " records with missing critical dates")
+  print(missing_critical)
+}
+
+# Check completion rates
+completion_summary <- project$data %>%
+  summarise(
+    total_records = n(),
+    baseline_complete = sum(baseline_survey_complete == 2, na.rm = TRUE),
+    followup_complete = sum(followup_survey_complete == 2, na.rm = TRUE)
+  ) %>%
+  mutate(
+    baseline_pct = baseline_complete / total_records * 100,
+    followup_pct = followup_complete / total_records * 100
+  )
+
+print(completion_summary)
+```
+
+### Data Reshaping
+
+```{r eval=FALSE}
+library(tidyr)
+
+# Pivot data for longitudinal analysis
+# Assume pain_score_day1, pain_score_day7, pain_score_day14
+pain_long <- project$data %>%
+  select(record_id, starts_with("pain_score_")) %>%
+  pivot_longer(
+    cols = starts_with("pain_score_"),
+    names_to = "timepoint",
+    names_prefix = "pain_score_",
+    values_to = "pain_score"
+  )
+
+# Pivot wider for analysis
+pain_wide <- pain_long %>%
+  pivot_wider(
+    names_from = timepoint,
+    values_from = pain_score
+  )
 ```
 
 ## Error Handling
@@ -154,32 +331,9 @@ The sardine package includes comprehensive error handling. Common issues include
 
 ## Advanced Usage
 
-### Exporting Specific Forms
+### Exporting Data (legacy)
 
-```{r eval=FALSE}
-form_data <- redcap_export_records(
-  conn,
-  forms = c("demographics", "medical_history")
-)
-```
-
-### Exporting with Survey Fields
-
-```{r eval=FALSE}
-survey_data <- redcap_export_records(
-  conn,
-  export_survey_fields = TRUE
-)
-```
-
-### Exporting with Data Access Groups
-
-```{r eval=FALSE}
-dag_data <- redcap_export_records(
-  conn,
-  export_data_access_groups = TRUE
-)
-```
+The legacy functions like `redcap_export_records()` have been replaced by accessing `project$data` directly and using dplyr verbs for filtering and selection.
 
 ## Next Steps
 

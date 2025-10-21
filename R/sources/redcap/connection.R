@@ -57,7 +57,7 @@ redcap_connection <- function(url, token, ssl_verify = TRUE, timeout = 30) {
 #' @return Logical. TRUE if connection is successful, FALSE otherwise
 #'
 #' @export
-test_connection.redcap_connection <- function(connection) {
+test_connection.redcap_connection <- function(connection, ...) {
   tryCatch({
     # Make a simple request to get project information
     response <- .redcap_request(

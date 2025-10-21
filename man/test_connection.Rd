@@ -8,6 +8,8 @@ test_connection(connection, ...)
 }
 \arguments{
 \item{connection}{A redcap_connection object created by \code{\link{redcap_connection}}}
+
+\item{...}{Additional arguments (currently unused)}
 }
 \value{
 Logical. TRUE if connection is successful, FALSE otherwise

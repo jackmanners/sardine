@@ -29,7 +29,7 @@ and data type validation.
 }
 \examples{
 \dontrun{
-project <- redcap_project_from_env()
+project <- redcap_project()
 quality_report <- generate_data_quality_report(project)
 print(quality_report)
 }

@@ -185,7 +185,7 @@ create_completion_summary <- function(completion_result) {
 }
 
 # Example usage (uncomment to run):
-# project <- redcap_project_from_env()
+# project <- redcap_project()
 # completion_result <- get_participant_completion(project)
 # print_completion_report(completion_result)
 # summary_table <- create_completion_summary(completion_result)

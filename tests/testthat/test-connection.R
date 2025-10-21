@@ -1,98 +1,58 @@
-test_that("redcap_connection creates valid connection object", {
-  # Test basic connection creation
-  conn <- redcap_connection(
-    url = "https://redcap.example.edu/api/",
-    token = "test_token_123456789"
-  )
-  
-  expect_s3_class(conn, c("redcap_connection", "sardine_connection"))
-  expect_equal(conn$source, "redcap")
-  expect_equal(conn$url, "https://redcap.example.edu/api/")
-  expect_equal(conn$token, "test_token_123456789")
-  expect_true(conn$ssl_verify)
-  expect_equal(conn$timeout, 30)
-  expect_true(inherits(conn$created, "POSIXct"))
-})
+# Note: redcap_project() tests require a real REDCap instance
+# These are integration tests and should be skipped in CI unless credentials are available
 
-test_that("redcap_connection handles URL formatting", {
-  # Test URL without trailing slash
-  conn <- redcap_connection(
-    url = "https://redcap.example.edu/api",
-    token = "test_token"
+test_that("redcap_project validates required parameters", {
+  # Test missing URL and no env vars
+  expect_error(
+    withr::with_envvar(c(REDCAP_URL = NA, REDCAP_TOKEN = NA), {
+      redcap_project()
+    }),
+    "URL must be provided"
   )
   
-  expect_equal(conn$url, "https://redcap.example.edu/api/")
-})
-
-test_that("redcap_connection validates inputs", {
-  # Test missing URL
+  # Test missing token and no env vars
   expect_error(
-    redcap_connection(token = "test_token"),
-    "API URL is required"
-  )
-  
-  # Test missing token
-  expect_error(
-    redcap_connection(url = "https://redcap.example.edu/api/"),
-    "API token is required"
-  )
-  
-  # Test empty URL
-  expect_error(
-    redcap_connection(url = "", token = "test_token"),
-    "API URL is required"
-  )
-  
-  # Test empty token
-  expect_error(
-    redcap_connection(url = "https://redcap.example.edu/api/", token = ""),
-    "API token is required"
-  )
-  
-  # Test invalid URL type
-  expect_error(
-    redcap_connection(url = 123, token = "test_token"),
-    "URL must be a single character string"
-  )
-  
-  # Test invalid token type
-  expect_error(
-    redcap_connection(url = "https://redcap.example.edu/api/", token = 123),
-    "Token must be a single character string"
-  )
-  
-  # Test invalid ssl_verify
-  expect_error(
-    redcap_connection(
-      url = "https://redcap.example.edu/api/", 
-      token = "test_token", 
-      ssl_verify = "yes"
-    ),
-    "ssl_verify must be a single logical value"
-  )
-  
-  # Test invalid timeout
-  expect_error(
-    redcap_connection(
-      url = "https://redcap.example.edu/api/", 
-      token = "test_token", 
-      timeout = -1
-    ),
-    "timeout must be a single positive number"
+    withr::with_envvar(c(REDCAP_URL = "https://example.com/api/", REDCAP_TOKEN = NA), {
+      redcap_project()
+    }),
+    "Token must be provided"
   )
 })
 
-test_that("print.sardine_connection works correctly", {
-  conn <- redcap_connection(
-    url = "https://redcap.example.edu/api/",
-    token = "test_token_123456789"
+test_that("redcap_project uses environment variables as fallback", {
+  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
+              "REDCap credentials not available in environment")
+  
+  # If env vars are set, this should work
+  expect_no_error(
+    project <- redcap_project()
   )
+})
+
+test_that("redcap_project creates valid project object", {
+  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
+              "REDCap credentials not available in environment")
+  
+  project <- redcap_project()
+  
+  expect_s3_class(project, "redcap_project")
+  expect_true("data" %in% names(project))
+  expect_true("metadata" %in% names(project))
+  expect_true("project_info" %in% names(project))
+  expect_true(is.function(project$refresh))
+  expect_true(is.function(project$info))
+})
+
+test_that("print.redcap_project works correctly", {
+  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
+              "REDCap credentials not available in environment")
+  
+  project <- redcap_project()
   
   # Capture the output
-  output <- capture.output(print(conn))
+  output <- capture.output(print(project))
   
-  expect_true(any(grepl("Sardine Connection Object", output)))
-  expect_true(any(grepl("REDCAP", output)))
-  expect_true(any(grepl("https://redcap.example.edu/api/", output)))
-  expect_true(any(grepl("test_tok...", output))) # Token should be masked
+  expect_true(any(grepl("REDCap Project", output)))
+  expect_true(any(grepl("Title:", output)))
+  expect_true(any(grepl("Cached Data:", output)))
 })

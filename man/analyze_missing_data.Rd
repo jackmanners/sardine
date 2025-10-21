@@ -32,7 +32,7 @@ including missing rates by field, form, and record.
 }
 \examples{
 \dontrun{
-project <- redcap_project_from_env()
+project <- redcap_project()
 missing_analysis <- analyze_missing_data(project)
 print(missing_analysis$summary)
 }

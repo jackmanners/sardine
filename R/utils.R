@@ -5,6 +5,7 @@
 #' that the URL and token are valid and the API is accessible.
 #'
 #' @param connection A redcap_connection object created by \code{\link{redcap_connection}}
+#' @param ... Additional arguments (currently unused)
 #'
 #' @return Logical. TRUE if connection is successful, FALSE otherwise
 #'
@@ -26,7 +27,7 @@ test_connection.default <- function(connection, ...) {
 }
 
 #' @export
-test_connection.redcap_connection <- function(connection) {
+test_connection.redcap_connection <- function(connection, ...) {
   tryCatch({
     # Make a simple request to get project information
     response <- .redcap_request(

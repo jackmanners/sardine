@@ -2,7 +2,7 @@
 
 ## Initial CRAN Release
 
-* Object-oriented interface with `redcap_project()` and `redcap_project_from_env()` 
+* Object-oriented interface with `redcap_project()` (replaces `redcap_project_from_env()`) 
 * Automatic data and metadata caching for improved performance
 * Clean API with methods like `export_records()`, `import_records()` 
 * Comprehensive participant completion reporting with `get_participant_completion()`

@@ -14,9 +14,11 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 # REDCap Data Import with Sardine
 
 This vignette demonstrates how to import data into REDCap projects using the sardine package.
+
 
 ## Setup
 
@@ -26,14 +28,15 @@ library(dplyr)
 library(tibble)
 ```
 
+
 ## Project Setup
 
-First, create your REDCap project object:
+First, create your REDCap project object.
 
 ```{r project_setup, eval=FALSE}
 # Load environment and create project
 load_env()
-project <- redcap_project_from_env()
+project <- redcap_project()
 ```
 
 ## Basic Data Import
@@ -49,33 +52,61 @@ new_records <- tibble(
   study_group = c("Treatment", "Control", "Treatment")
 )
 
-# Import the data
-result <- import_records(project, new_records)
-# Warning: Importing data to REDCap will make cached project data outdated
-# Info: Consider running project$refresh() after import to update cached data
+# Import the data with safety checks
+result <- project$import(new_records)
+# Import checks if cache is stale and analyzes changes
+# By default, overwrites are blocked (overwrite = FALSE)
 
 print(result)
+```
+
+### Import with Safety Features
+
+The import method includes built-in safety features:
+
+```{r import_safety, eval=FALSE}
+# Import detects cache staleness
+result <- project$import(new_records)
+# Warning: Project cache is outdated (6 minutes old)
+# Import will show: X new records, Y updated fields
+
+# Allow overwrites if needed
+result <- project$import(new_records, overwrite = TRUE)
+# Confirmation prompt will show what's being overwritten
+
+# Skip confirmation for automated workflows
+result <- project$import(new_records, overwrite = TRUE, force = TRUE)
+
+# Save a detailed change report
+result <- project$import(
+  new_records,
+  overwrite = TRUE,
+  save_changes = "import_changes.csv"
+)
 ```
 
 ### Understanding Import Results
 
 ```{r import_results, eval=FALSE}
-# Import result shows what happened
-cat("Import completed:\n")
-cat("- Records processed:", result$count, "\n")
+# Import returns API response
+cat("Import API response:\n")
+print(result)
 
-# If return_content = "ids", you get the record IDs
-result_with_ids <- import_records(
-  project, 
-  new_records, 
-  return_content = "ids"
+# Check import details
+cat("Status:", result$status_code, "\n")
+
+# For detailed change tracking, save a report
+project$import(
+  new_records,
+  overwrite = TRUE,
+  save_changes = "detailed_changes.csv"
 )
-cat("Imported record IDs:", paste(result_with_ids, collapse = ", "), "\n")
+# CSV contains: record_id, field_name, old_value, new_value
 ```
 
 ## Cache Management After Import
 
-Importing data makes your cached project data outdated:
+Import automatically refreshes the cache after successful import:
 
 ```{r cache_management, eval=FALSE}
 # Before import - cached data count
@@ -83,14 +114,10 @@ old_count <- nrow(project$data)
 cat("Records before import:", old_count, "\n")
 
 # Import new data
-import_records(project, new_records)
+project$import(new_records)
+# Import automatically refreshes cache
 
-# Cached data is now outdated
-current_cached_count <- nrow(project$data)
-cat("Cached records (outdated):", current_cached_count, "\n")
-
-# Refresh to get updated data
-project$refresh()
+# Cache is now current
 new_count <- nrow(project$data)
 cat("Records after refresh:", new_count, "\n")
 cat("New records added:", new_count - old_count, "\n")
@@ -98,42 +125,55 @@ cat("New records added:", new_count - old_count, "\n")
 
 ## Import Options
 
-### Overwrite Behavior
+### Overwrite Protection
+
+By default, the import method protects against accidental overwrites:
 
 ```{r overwrite_behavior, eval=FALSE}
-# Normal behavior (default) - only overwrite blank fields
-import_records(
-  project, 
-  updated_data, 
-  overwrite_behavior = "normal"
-)
+# Default: overwrites are blocked
+project$import(updated_data)
+# Error if any existing data would be overwritten
 
-# Overwrite all existing data
-import_records(
-  project, 
-  updated_data, 
-  overwrite_behavior = "overwrite"
+# Allow overwrites with confirmation
+project$import(
+  updated_data,
+  overwrite = TRUE
+)
+# Shows: "About to overwrite 5 existing fields. Continue? [y/N]"
+
+# Skip confirmation for scripts
+project$import(
+  updated_data,
+  overwrite = TRUE,
+  force = TRUE
 )
 ```
 
-### Date Formats
+### Change Detection
 
-```{r date_formats, eval=FALSE}
-# Data with dates
-date_data <- tibble(
-  record_id = "104",
-  birth_date = "1990-03-15",
-  enrollment_date = "2025-01-01"
+Import analyzes what will change before committing:
+
+```{r change_detection, eval=FALSE}
+# Import shows change summary
+result <- project$import(updated_data, overwrite = TRUE)
+# Output:
+# - 3 new records will be created
+# - 5 existing records will be updated
+# - 12 fields will be overwritten
+# 
+# First few changes:
+# record_id | field      | old_value | new_value
+# 001       | age        | 30        | 31
+# 002       | status     | Active    | Completed
+# ...
+
+# Save complete change report
+project$import(
+  updated_data,
+  overwrite = TRUE,
+  save_changes = "changes.csv"
 )
-
-# Specify date format
-import_records(
-  project, 
-  date_data,
-  date_format = "YMD"  # Year-Month-Day
-)
-
-# Other formats: "MDY" (Month-Day-Year), "DMY" (Day-Month-Year)
+# Review changes.csv before continuing
 ```
 
 ## Updating Existing Records
@@ -148,15 +188,14 @@ updates <- tibble(
   status = c("Completed", "Active")
 )
 
-import_records(project, updates)
-project$refresh()
+# Import with overwrite enabled
+project$import(updates, overwrite = TRUE)
+# Confirms: "Update 2 records across 2 fields?"
 
-# Verify updates
-updated_records <- export_records(
-  project,
-  records = c("001", "002"),
-  fields = c("record_id", "follow_up_date", "status")
-)
+# Verify updates in refreshed cache
+updated_records <- project$data |>
+  dplyr::filter(record_id %in% c("001", "002")) |>
+  dplyr::select(record_id, follow_up_date, status)
 print(updated_records)
 ```
 
@@ -175,8 +214,8 @@ bmi_updates <- existing_data %>%
   select(record_id, bmi)
 
 # Import calculated BMI values
-import_records(project, bmi_updates)
-project$refresh()
+project$import(bmi_updates, overwrite = TRUE)
+# Shows how many BMI fields will be updated
 ```
 
 ## Working with Longitudinal Projects
@@ -192,13 +231,15 @@ longitudinal_data <- tibble(
   bp_systolic = c(120, 118, 135, 130)
 )
 
-import_records(project, longitudinal_data)
-project$refresh()
+project$import(longitudinal_data, overwrite = TRUE)
+# Change detection works across events
 ```
 
 ## Import Validation
 
 ### Pre-Import Checks
+
+The import method includes automatic cache validation and change detection, but you can add custom validation:
 
 ```{r pre_import_validation, eval=FALSE}
 # Function to validate data before import
@@ -249,18 +290,15 @@ if (length(validation_result$warnings) > 0) {
 
 # Only import if no errors
 if (length(validation_result$errors) == 0) {
-  import_records(project, new_records)
+  project$import(new_records)
 }
 ```
 
 ### Post-Import Verification
 
 ```{r post_import_verification, eval=FALSE}
-# Verify import was successful
+# Import automatically refreshes cache, so verification is immediate
 verify_import <- function(project, imported_data) {
-  # Refresh cached data
-  project$refresh()
-  
   # Check that records exist
   imported_ids <- imported_data$record_id
   existing_ids <- project$data$record_id
@@ -290,6 +328,8 @@ verify_import <- function(project, imported_data) {
   }
 }
 
+# Use after import
+project$import(new_records)
 verify_import(project, new_records)
 ```
 
@@ -307,8 +347,8 @@ survey_responses <- tibble(
   survey_complete = c(2, 2, 2)  # 2 = Complete
 )
 
-import_records(project, survey_responses)
-project$refresh()
+# Import with overwrite to update existing survey responses
+project$import(survey_responses, overwrite = TRUE)
 ```
 
 ### Importing Calculated Fields
@@ -338,8 +378,12 @@ calculated_data <- project$data %>%
   ) %>%
   select(record_id, risk_score, bmi_category)
 
-import_records(project, calculated_data)
-project$refresh()
+# Import calculated values with change report
+project$import(
+  calculated_data,
+  overwrite = TRUE,
+  save_changes = "calculated_updates.csv"
+)
 ```
 
 ### Importing External Data
@@ -363,8 +407,7 @@ external_data <- read.csv("lab_results.csv") %>%
 # Validate before import
 validation <- validate_import_data(external_data, project)
 if (length(validation$errors) == 0) {
-  import_records(project, external_data)
-  project$refresh()
+  project$import(external_data, overwrite = TRUE)
 }
 ```
 
@@ -377,7 +420,7 @@ if (length(validation$errors) == 0) {
 safe_import <- function(project, data, max_retries = 3) {
   for (attempt in 1:max_retries) {
     tryCatch({
-      result <- import_records(project, data)
+      result <- project$import(data, overwrite = TRUE, force = TRUE)
       cat("Import successful on attempt", attempt, "\n")
       return(result)
     }, error = function(e) {
@@ -416,7 +459,7 @@ import_in_chunks <- function(project, data, chunk_size = 100) {
     cat("Importing chunk", i, "of", n_chunks, 
         "(records", start_idx, "to", end_idx, ")\n")
     
-    result <- import_records(project, chunk_data)
+    result <- project$import(chunk_data, overwrite = TRUE, force = TRUE)
     results[[i]] <- result
     
     # Brief pause between chunks
@@ -424,7 +467,6 @@ import_in_chunks <- function(project, data, chunk_size = 100) {
   }
   
   cat("All chunks imported successfully\n")
-  project$refresh()
   
   return(results)
 }
@@ -451,13 +493,28 @@ data_quality_check <- function(data) {
   
   return(issues)
 }
+
+# Import includes automatic validation
+# - Cache staleness check (warns if >5 minutes old)
+# - Change detection (shows what will be modified)
+# - Overwrite protection (blocks by default)
 ```
 
-### 2. Refresh Cache After Import
+### 2. Use Safety Features
 ```{r bp_refresh, eval=FALSE}
-# Always refresh after import
-import_records(project, data)
-project$refresh()  # Critical for data consistency
+# Import automatically refreshes cache
+project$import(data, overwrite = TRUE)
+
+# Save change reports for audit trails
+project$import(
+  data,
+  overwrite = TRUE,
+  save_changes = "audit_trail.csv"
+)
+
+# Review reports before proceeding
+changes <- read.csv("audit_trail.csv")
+cat("Fields to be modified:", nrow(changes), "\n")
 ```
 
 ### 3. Keep Import Logs
@@ -474,33 +531,45 @@ log_import <- function(project, data, result) {
   # Save to log file or database
   # saveRDS(log_entry, paste0("import_log_", Sys.Date(), ".rds"))
 }
+
+# Or use built-in change reports
+project$import(
+  data,
+  overwrite = TRUE,
+  save_changes = paste0("import_", Sys.Date(), ".csv")
+)
 ```
 
 ### 4. Test with Small Batches First
 ```{r bp_testing, eval=FALSE}
 # Test import process with small sample
 test_data <- head(large_dataset, 5)
-test_result <- import_records(project, test_data)
+test_result <- project$import(test_data, overwrite = TRUE)
 
-# Verify test import worked correctly
-project$refresh()
-verify_import(project, test_data)
+# Review what changed
+cat("Test import successful\n")
+cat("Records in cache:", nrow(project$data), "\n")
 
-# If test successful, proceed with full import
-if (test_successful) {
-  full_result <- import_records(project, large_dataset)
-}
+# Proceed with full import
+full_result <- project$import(
+  large_dataset,
+  overwrite = TRUE,
+  save_changes = "full_import_changes.csv"
+)
 ```
 
 ## Summary
 
 Key points for REDCap data import with sardine:
 
-- **Import warnings**: The package warns when imports make cached data outdated
-- **Always refresh**: Use `project$refresh()` after imports to update cached data
-- **Validate first**: Check data quality before importing
-- **Handle errors**: Use try-catch and chunking for robust imports
-- **Verify results**: Confirm imports were successful
-- **Log activities**: Keep records of import operations
+- **Cache validation**: Import checks if cached data is stale (>5 minutes old)
+- **Automatic refresh**: Cache is automatically refreshed after successful import
+- **Overwrite protection**: `overwrite = FALSE` by default prevents accidental data loss
+- **Change detection**: See exactly what will be modified before confirming
+- **Interactive confirmation**: Import asks for approval before overwriting data
+- **Change reports**: Save detailed CSV reports of all modifications (`save_changes` parameter)
+- **Safety by default**: Use `force = TRUE` only in automated workflows
+- **Custom validation**: Add project-specific checks before import
+- **Error handling**: Use try-catch and chunking for robust imports
 
 The sardine package makes REDCap data import straightforward while helping you maintain data integrity and consistency.

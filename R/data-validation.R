@@ -30,7 +30,7 @@ NULL
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #' missing_analysis <- analyze_missing_data(project)
 #' print(missing_analysis$summary)
 #' }
@@ -61,6 +61,17 @@ analyze_missing_data <- function(project, by_form = TRUE, by_field = TRUE, by_re
     stop("No data dictionary available in project")
   }
   
+  # Determine id field (first column of data), fallback to dictionary or 'record_id'
+  id_field <- if (!is.null(project$id_field)) {
+    project$id_field
+  } else if (!is.null(data) && ncol(data) > 0) {
+    names(data)[1]
+  } else if (!is.null(dictionary) && "field_name" %in% names(dictionary)) {
+    dictionary$field_name[1]
+  } else {
+    "record_id"
+  }
+
   # Calculate total records
   total_records <- nrow(data)
   
@@ -73,9 +84,10 @@ analyze_missing_data <- function(project, by_form = TRUE, by_field = TRUE, by_re
   )
   
   # Overall summary
-  total_cells <- total_records * (ncol(data) - 1)  # Exclude record_id
-  missing_cells <- sum(is.na(data[, -1]))  # Exclude record_id from missing count
-  overall_missing_rate <- missing_cells / total_cells
+  non_id_cols <- setdiff(names(data), id_field)
+  total_cells <- total_records * length(non_id_cols)  # Exclude id field
+  missing_cells <- if (length(non_id_cols) > 0) sum(is.na(data[, non_id_cols, drop = FALSE])) else 0
+  overall_missing_rate <- if (total_cells > 0) missing_cells / total_cells else NA_real_
   
   results$summary <- list(
     total_records = total_records,
@@ -88,7 +100,7 @@ analyze_missing_data <- function(project, by_form = TRUE, by_field = TRUE, by_re
   # By field analysis
   if (by_field) {
     field_missing <- data %>%
-      dplyr::select(-record_id) %>%
+      dplyr::select(-dplyr::all_of(id_field)) %>%
       dplyr::summarise_all(~sum(is.na(.))) %>%
       tidyr::pivot_longer(everything(), names_to = "field_name", values_to = "missing_count") %>%
       dplyr::mutate(
@@ -158,11 +170,11 @@ analyze_missing_data <- function(project, by_form = TRUE, by_field = TRUE, by_re
     record_missing <- data %>%
       dplyr::rowwise() %>%
       dplyr::mutate(
-        missing_count = sum(is.na(dplyr::c_across(-record_id))),
-        missing_rate = missing_count / (ncol(data) - 1),
+        missing_count = sum(is.na(dplyr::c_across(-dplyr::all_of(id_field)))),
+        missing_rate = if (length(non_id_cols) > 0) missing_count / length(non_id_cols) else NA_real_,
         above_threshold = missing_rate > threshold
       ) %>%
-      dplyr::select(record_id, missing_count, missing_rate, above_threshold) %>%
+      dplyr::select(dplyr::all_of(id_field), missing_count, missing_rate, above_threshold) %>%
       dplyr::arrange(desc(missing_rate))
     
     results$by_record <- record_missing
@@ -294,8 +306,19 @@ validate_data_types <- function(project, strict = TRUE) {
   
   validation_issues <- list()
   
+  # Determine id field to skip in validation
+  id_field <- if (!is.null(project$id_field)) {
+    project$id_field
+  } else if (!is.null(data) && ncol(data) > 0) {
+    names(data)[1]
+  } else if (!is.null(dictionary) && "field_name" %in% names(dictionary)) {
+    dictionary$field_name[1]
+  } else {
+    "record_id"
+  }
+
   for (field in common_fields) {
-    if (field == "record_id") next  # Skip record_id
+    if (field == id_field) next  # Skip id field
     
     field_info <- dictionary %>% 
       dplyr::filter(field_name == field) %>% 
@@ -408,10 +431,11 @@ validate_data_types <- function(project, strict = TRUE) {
   
   # Compile summary
   results$issues <- validation_issues
+  num_checked <- length(setdiff(common_fields, id_field))
   results$summary <- list(
-    total_fields_checked = length(common_fields) - 1,  # Exclude record_id
+    total_fields_checked = num_checked,
     fields_with_issues = length(validation_issues),
-    validation_pass_rate = 1 - (length(validation_issues) / (length(common_fields) - 1))
+    validation_pass_rate = if (num_checked > 0) 1 - (length(validation_issues) / num_checked) else NA_real_
   )
   
   class(results) <- c("data_type_validation", "list")
@@ -483,7 +507,7 @@ print.data_type_validation <- function(x, ...) {
 #'
 #' @examples
 #' \dontrun{
-#' project <- redcap_project_from_env()
+#' project <- redcap_project()
 #' quality_report <- generate_data_quality_report(project)
 #' print(quality_report)
 #' }
@@ -613,7 +637,7 @@ generate_quality_report_markdown <- function(report) {
       dplyr::slice_head(n = 20) %>%
       dplyr::mutate(
         missing_rate_pct = scales::percent(missing_rate, accuracy = 0.1),
-        flag = ifelse(above_threshold, "⚠️", "")
+        flag = ifelse(above_threshold, "[!]", ""),
       ) %>%
       dplyr::select(field_name, form_name, missing_count, missing_rate_pct, flag)
     

@@ -8,5 +8,7 @@
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
 ^docs$
-^pkgdown$
+^vignettes$
 ^\.lintr$
+^\.env$
+^temp\.r$

@@ -14,9 +14,11 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 # REDCap Data Extraction with Sardine
 
 This vignette demonstrates how to extract data from REDCap projects using the sardine package's object-oriented approach.
+
 
 ## Setup
 
@@ -28,9 +30,10 @@ library(dplyr)
 library(tibble)
 ```
 
+
 ## Environment Configuration
 
-The sardine package uses environment variables for secure credential management:
+The sardine package uses environment variables for secure credential management.
 
 ```{r env_setup, eval=FALSE}
 # Create environment template (one-time setup)
@@ -50,7 +53,7 @@ The core of sardine's approach is the REDCap project object:
 
 ```{r project_creation, eval=FALSE}
 # Create project from environment variables
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 # Or create directly with credentials
 project <- redcap_project(
@@ -101,16 +104,12 @@ For targeted data extraction:
 
 ```{r specific_fields, eval=FALSE}
 # Extract demographic fields
-demographics <- export_records(
-  project,
-  fields = c("record_id", "age", "gender", "race", "ethnicity")
-)
+demographics <- project$data |>
+  dplyr::select(record_id, age, gender, race, ethnicity)
 
 # Extract baseline measurements
-baseline <- export_records(
-  project,
-  fields = c("record_id", "height", "weight", "bp_systolic", "bp_diastolic")
-)
+baseline <- project$data |>
+  dplyr::select(record_id, height, weight, bp_systolic, bp_diastolic)
 
 # View results
 head(demographics)
@@ -122,73 +121,145 @@ To get data for particular participants:
 
 ```{r specific_records, eval=FALSE}
 # Extract data for specific participants
-pilot_participants <- export_records(
-  project,
-  records = c("001", "002", "003", "004", "005")
-)
+pilot_participants <- project$data |>
+  dplyr::filter(record_id %in% c("001", "002", "003", "004", "005"))
 
-# Extract records meeting criteria (using cached data)
-high_risk <- project$data %>%
-  filter(risk_score > 75) %>%
-  pull(record_id)
-
-high_risk_data <- export_records(
-  project,
-  records = high_risk
-)
+# Extract records meeting criteria using cached data
+high_risk_data <- project$data |>
+  dplyr::filter(risk_score > 75)
 ```
 
 ## Extracting by Form/Instrument
 
-To get data from specific forms:
+To get data from specific REDCap forms, use metadata to identify form fields:
 
 ```{r by_form, eval=FALSE}
-# Get all instruments/forms
-instruments <- export_instruments(project)
-print(instruments)
+# Get metadata to see form structure
+metadata <- project$metadata
 
-# Extract data from specific form
-baseline_survey <- export_records(
-  project,
-  forms = "baseline_demographics"
-)
+# View all forms
+forms <- unique(metadata$form_name)
+print(forms)
 
-# Extract from multiple forms
-core_data <- export_records(
-  project,
-  forms = c("demographics", "medical_history", "current_medications")
-)
+# Get field names for a specific form
+baseline_fields <- metadata %>%
+  filter(form_name == "baseline_demographics") %>%
+  pull(field_name)
+
+# Extract data for that form
+baseline_data <- project$data %>%
+  select(record_id, all_of(baseline_fields))
+
+# Extract multiple forms
+demo_forms <- metadata %>%
+  filter(form_name %in% c("baseline_demographics", "medical_history")) %>%
+  pull(field_name)
+
+core_data <- project$data %>%
+  select(record_id, all_of(demo_forms))
+
+# Alternative: use pattern matching if forms have consistent prefixes
+baseline_by_prefix <- project$data %>%
+  select(record_id, starts_with("baseline_"))
+```
+
+## Filtering by Completion Status
+
+REDCap automatically adds completion status fields:
+
+```{r completion, eval=FALSE}
+# Find completion status fields
+completion_fields <- metadata %>%
+  filter(grepl("_complete$", field_name)) %>%
+  pull(field_name)
+
+print(completion_fields)
+# Example: baseline_demographics_complete, medical_history_complete
+
+# REDCap completion values:
+# 0 = Incomplete
+# 1 = Unverified
+# 2 = Complete
+
+# Get only complete baseline surveys
+complete_baseline <- project$data %>%
+  filter(baseline_demographics_complete == 2)
+
+# Get records with incomplete forms
+incomplete_any <- project$data %>%
+  filter(
+    baseline_demographics_complete != 2 | 
+    medical_history_complete != 2
+  )
+
+# Completion summary
+completion_summary <- project$data %>%
+  summarise(
+    total = n(),
+    baseline_complete = sum(baseline_demographics_complete == 2, na.rm = TRUE),
+    baseline_pct = baseline_complete / total * 100
+  )
 ```
 
 ## Working with Longitudinal Projects
 
-For projects with multiple events:
+For projects with multiple events/timepoints:
 
 ```{r longitudinal, eval=FALSE}
 # Check if project is longitudinal
-events <- export_events(project)
+is_longitudinal <- project$project_info$is_longitudinal
 
-if (nrow(events) > 0) {
-  cat("Longitudinal project with", nrow(events), "events\n")
+# Access metadata about the project structure
+metadata <- project$metadata
+
+# In longitudinal projects, the data typically includes 
+# a redcap_event_name field
+if ("redcap_event_name" %in% names(project$data)) {
+  # View all events in the data
+  events <- project$data %>%
+    distinct(redcap_event_name)
+  print(events)
   
   # Extract data from specific event
-  baseline_event <- export_records(
-    project,
-    events = "baseline_arm_1"
-  )
+  baseline_event <- project$data %>%
+    filter(redcap_event_name == "baseline_arm_1")
   
   # Extract from multiple events
-  followup_data <- export_records(
-    project,
-    events = c("month_3_arm_1", "month_6_arm_1", "month_12_arm_1")
-  )
+  followup_data <- project$data %>%
+    filter(redcap_event_name %in% c("month_3_arm_1", "month_6_arm_1"))
   
-  # Combine specific fields and events
-  vital_signs_over_time <- export_records(
-    project,
-    fields = c("record_id", "height", "weight", "bp_systolic", "bp_diastolic"),
-    events = c("baseline_arm_1", "month_3_arm_1", "month_6_arm_1")
-  )
+  # Compare values across events
+  vital_signs_over_time <- project$data %>%
+    select(record_id, redcap_event_name, bp_systolic, bp_diastolic) %>%
+    arrange(record_id, redcap_event_name)
+}
+```
+
+## Working with Repeating Instruments
+
+For projects with repeating instruments:
+
+```{r repeating, eval=FALSE}
+# Repeating instruments have redcap_repeat_instrument and redcap_repeat_instance
+if ("redcap_repeat_instance" %in% names(project$data)) {
+  # Get all instances of a repeating form
+  medication_log <- project$data %>%
+    filter(redcap_repeat_instrument == "medications") %>%
+    select(record_id, redcap_repeat_instance, 
+           medication_name, medication_dose, medication_start_date) %>%
+    arrange(record_id, redcap_repeat_instance)
+  
+  # Get latest instance for each record
+  latest_medication <- medication_log %>%
+    group_by(record_id) %>%
+    slice_max(redcap_repeat_instance, n = 1) %>%
+    ungroup()
+  
+  # Count instances per record
+  instance_counts <- project$data %>%
+    filter(redcap_repeat_instrument == "adverse_events") %>%
+    group_by(record_id) %>%
+    summarise(total_adverse_events = n_distinct(redcap_repeat_instance))
 }
 ```
 
@@ -221,10 +292,8 @@ summary_stats <- all_data %>%
 ### 2. Use Targeted Extraction for Specific Analyses
 ```{r best_practices_targeted, eval=FALSE}
 # Good: Extract only needed fields for analysis
-analysis_data <- export_records(
-  project,
-  fields = c("record_id", "treatment_group", "outcome_measure", "baseline_score")
-)
+analysis_data <- project$data |>
+  dplyr::select(record_id, treatment_group, outcome_measure, baseline_score)
 ```
 
 ### 3. Handle Missing Data Appropriately
@@ -262,7 +331,7 @@ print(validation_checks)
 # 3. Network connectivity
 
 tryCatch({
-  project <- redcap_project_from_env()
+  project <- redcap_project()
 }, error = function(e) {
   cat("Connection failed:", e$message, "\n")
   cat("Check your REDCAP_URL and REDCAP_TOKEN in .env file\n")
@@ -272,7 +341,8 @@ tryCatch({
 ### Empty Results
 ```{r troubleshoot_empty, eval=FALSE}
 # If export_records returns empty results:
-result <- export_records(project, fields = c("record_id", "nonexistent_field"))
+result <- project$data |>
+  dplyr::select(record_id, nonexistent_field)
 
 if (nrow(result) == 0) {
   cat("No data returned. Check:\n")

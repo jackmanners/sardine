@@ -38,17 +38,61 @@ redcap_project <- function(url = NULL, token = NULL, ssl_verify = TRUE,
   if (is.null(url)) {
     url <- Sys.getenv(url_var)
     if (url == "") {
-      stop(paste("URL must be provided directly or set in", url_var, "environment variable"))
+      # Interactive fallback: ask user to choose URL
+      if (interactive()) {
+        cli::cli_h2("REDCap URL not found")
+        cli::cli_alert_info("Select your REDCap instance or choose Other to enter manually")
+
+        known <- tibble::tibble(
+          label = c("Flinders University", "Vanderbilt University", "Other"),
+          url = c(
+            "https://researchsurvey.flinders.edu.au/api/",
+            "https://redcap.vanderbilt.edu/api/",
+            NA_character_
+          )
+        )
+
+        for (i in seq_len(nrow(known))) {
+          cat(sprintf("%d) %s%s\n", i, known$label[i], if (!is.na(known$url[i])) paste0(" (", known$url[i], ")") else ""))
+        }
+        choice <- suppressWarnings(as.integer(readline(prompt = "Select (1-3): ")))
+        if (!is.na(choice) && choice >= 1 && choice <= nrow(known)) {
+          if (!is.na(known$url[choice])) {
+            url <- known$url[choice]
+          } else {
+            manual <- readline(prompt = "Enter REDCap API URL (ends with /api/): ")
+            url <- trimws(manual)
+          }
+        }
+
+        if (is.null(url) || url == "") {
+          stop(paste("URL must be provided directly or set in", url_var, "environment variable"))
+        }
+      } else {
+        stop(paste("URL must be provided directly or set in", url_var, "environment variable"))
+      }
+    } else {
+      cli::cli_alert_info("Using URL from {url_var} environment variable")
     }
-    cli::cli_alert_info("Using URL from {url_var} environment variable")
   }
 
   if (is.null(token)) {
     token <- Sys.getenv(token_var)
     if (token == "") {
-      stop(paste("Token must be provided directly or set in", token_var, "environment variable"))
+      # Interactive fallback: ask user for token
+      if (interactive()) {
+        cli::cli_h2("REDCap API token not found")
+        token <- readline(prompt = "Enter REDCap API token: ")
+        token <- trimws(token)
+        if (token == "") {
+          stop(paste("Token must be provided directly or set in", token_var, "environment variable"))
+        }
+      } else {
+        stop(paste("Token must be provided directly or set in", token_var, "environment variable"))
+      }
+    } else {
+      cli::cli_alert_info("Using token from {token_var} environment variable")
     }
-    cli::cli_alert_info("Using token from {token_var} environment variable")
   }
 
   # Resolve internal function robustly
@@ -61,10 +105,40 @@ redcap_project <- function(url = NULL, token = NULL, ssl_verify = TRUE,
   }
 
   # Create the project using the internal function
-  internal(
+  proj <- internal(
     url = url,
     token = token, 
     ssl_verify = ssl_verify,
     timeout = timeout
   )
+
+  # Offer to save credentials to environment and .env for future sessions
+  if (interactive()) {
+    # If env variables not set, offer to save
+    if (Sys.getenv(url_var) == "" || Sys.getenv(token_var) == "") {
+      cat(sprintf("\nWould you like to save these credentials to environment variables (%s/%s) and .env for future sessions?\n", url_var, token_var))
+      save_ans <- tolower(trimws(readline(prompt = "Save credentials? [y/N]: ")))
+      if (save_ans %in% c("y", "yes")) {
+        Sys.setenv(structure(list(url), names = url_var))
+        Sys.setenv(structure(list(token), names = token_var))
+        # Append or create .env seamlessly
+        env_path <- ".env"
+        line <- function(k, v) paste0(k, "=", v)
+        lines <- c()
+        if (file.exists(env_path)) {
+          existing <- readLines(env_path, warn = FALSE)
+          # replace or append
+          existing <- existing[!grepl(paste0("^", url_var, "="), existing)]
+          existing <- existing[!grepl(paste0("^", token_var, "="), existing)]
+          lines <- c(existing, line(url_var, url), line(token_var, token))
+        } else {
+          lines <- c(line(url_var, url), line(token_var, token))
+        }
+        writeLines(lines, env_path)
+        cli::cli_alert_success("Saved credentials to environment and .env")
+      }
+    }
+  }
+
+  proj
 }

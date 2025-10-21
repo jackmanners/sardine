@@ -14,9 +14,11 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 ## Introduction
 
-The `sardine` package now includes comprehensive data quality and validation tools specifically designed for REDCap projects. These tools help identify missing data patterns, validate data types against your REDCap data dictionary, and generate quality reports.
+The `sardine` package now includes comprehensive data quality and validation tools specifically designed for REDCap projects. These tools help you spot missing data, validate types, and generate quality reports.
+
 
 ## Setup
 
@@ -25,18 +27,18 @@ library(sardine)
 library(dplyr)
 
 # Connect to your REDCap project
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 # Or use the sample project for testing
 sample_project <- create_sample_redcap_project()
 ```
+
 
 ## Quick Quality Assessment
 
 The fastest way to assess data quality is with the comprehensive quality report:
 
 ```{r quality-report, eval=FALSE}
-# Generate complete quality report
 quality_report <- generate_data_quality_report(
   project,
   missing_threshold = 0.15,     # Flag fields with >15% missing data
@@ -59,7 +61,6 @@ This provides:
 For detailed missing data analysis:
 
 ```{r missing-analysis, eval=FALSE}
-# Comprehensive missing data analysis
 missing_analysis <- analyze_missing_data(
   project,
   by_form = TRUE,      # Analyze by REDCap form
@@ -87,15 +88,63 @@ The analysis provides several perspectives:
 - Fields flagged as having high missing rates
 - Field labels and forms for context
 
+```{r field-level, eval=FALSE}
+# View field-level details
+missing_analysis$by_field %>%
+  arrange(desc(missing_rate)) %>%
+  head(10)
+
+# Fields above threshold
+flagged_fields <- missing_analysis$by_field %>%
+  filter(above_threshold)
+```
+
 **Form-level analysis** shows:
 - Overall missing rate by REDCap form
 - Number of fields in each form
 - Which forms have concerning missing data patterns
 
+```{r form-level, eval=FALSE}
+# View form-level summary
+missing_analysis$by_form %>%
+  arrange(desc(missing_rate))
+
+# Forms needing attention
+problem_forms <- missing_analysis$by_form %>%
+  filter(above_threshold)
+```
+
 **Executive summary** provides:
 - Total records and fields
 - Overall missing data rate
 - Count of problematic fields/forms
+
+```{r summary, eval=FALSE}
+# View summary statistics
+summary <- missing_analysis$summary
+print(paste("Overall missing rate:", 
+            scales::percent(summary$overall_missing_rate)))
+print(paste("Fields with high missing:", 
+            summary$high_missing_fields))
+```
+
+**Record-level analysis** (optional):
+- Identify records with high missing rates
+- Find records needing follow-up
+
+```{r record-level, eval=FALSE}
+# Enable record-level analysis
+missing_analysis <- analyze_missing_data(
+  project,
+  by_record = TRUE,  # Enable record analysis
+  threshold = 0.20
+)
+
+# Find records with many missing fields
+incomplete_records <- missing_analysis$by_record %>%
+  filter(missing_rate > 0.30) %>%
+  arrange(desc(missing_rate))
+```
 
 ## Data Type Validation
 

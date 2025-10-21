@@ -14,9 +14,11 @@ knitr::opts_chunk$set(
 )
 ```
 
+
 # REDCap Report Generation with Sardine
 
 This vignette demonstrates how to generate various types of reports from REDCap data using the sardine package.
+
 
 ## Setup
 
@@ -28,15 +30,16 @@ library(knitr)
 library(tibble)
 ```
 
+
 ## Project Setup
 
 ```{r project_setup, eval=FALSE}
 # Load environment and create project
 load_env()
-project <- redcap_project_from_env()
+project <- redcap_project()
 
 # View project info
-project$info()
+project$info() # Tells you about the project. Not about your life choices.
 ```
 
 ## Participant Completion Reports
@@ -491,7 +494,7 @@ run_scheduled_report <- function(env_file = ".env", output_dir = "reports") {
   
   # Load environment and create project
   load_env(env_file)
-  project <- redcap_project_from_env()
+    project <- redcap_project()
   
   # Generate timestamp for file names
   timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")

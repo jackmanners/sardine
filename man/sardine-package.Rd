@@ -24,20 +24,20 @@ data platforms including Qualtrics, SurveyMonkey, and database connections.
 
 \itemize{
 \item{\code{\link{redcap_project}}: Create a REDCap project object (tests connection, caches data)}
-\item{\code{\link{load_env}}: Load environment configuration from .env file}
-\item{\code{\link{create_env_template}}: Create .env template file}
+\item{\code{load_env}: Load environment configuration from .env file}
+\item{\code{create_env_template}: Create .env template file}
 }
 }
 
 \section{Data Access Functions}{
 
-\itemize{
-\item{\code{\link{export_records}}: Export specific records or fields}
-\item{\code{\link{import_records}}: Import data to REDCap (warns about cache)}
-\item{\code{\link{export_instruments}}: Export form/instrument information}
-\item{\code{\link{export_events}}: Export events for longitudinal projects}
-\item{\code{\link{export_users}}: Export project user information}
-\item{\code{\link{export_instrument_event_mappings}}: Export instrument-event mappings}
+The primary way to access data is via the project object:
+\preformatted{
+# Access full cached data
+all_data <- project$data
+# Use dplyr to filter/select
+demographics <- project$data |>
+  dplyr::select(age, gender)
 }
 }
 
@@ -50,8 +50,9 @@ project <- redcap_project()
 # Access full cached data
 all_data <- project$data
 
-# Export specific fields
-demographics <- export_records(project, fields = c("age", "gender"))
+# Filter/select specific fields
+demographics <- project$data |>
+  dplyr::select(age, gender)
 
 # View project information
 project$info()
