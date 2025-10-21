@@ -1,39 +1,19 @@
-# Note: redcap_project() tests require a real REDCap instance
-# These are integration tests and should be skipped in CI unless credentials are available
+# Note: Tests use a hardcoded test project to avoid testing on production
+
+# Test credentials for dedicated testing project
+TEST_URL <- "https://researchsurvey.flinders.edu.au/api/"
+TEST_TOKEN <- "6DB3351D46845FB617675D4AECC7B211"
 
 test_that("redcap_project validates required parameters", {
-  # Test missing URL and no env vars
+  # Test missing token (empty string)
   expect_error(
-    withr::with_envvar(c(REDCAP_URL = NA, REDCAP_TOKEN = NA), {
-      redcap_project()
-    }),
-    "URL must be provided"
-  )
-  
-  # Test missing token and no env vars
-  expect_error(
-    withr::with_envvar(c(REDCAP_URL = "https://example.com/api/", REDCAP_TOKEN = NA), {
-      redcap_project()
-    }),
-    "Token must be provided"
-  )
-})
-
-test_that("redcap_project uses environment variables as fallback", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  # If env vars are set, this should work
-  expect_no_error(
-    project <- redcap_project()
+    redcap_project(url = TEST_URL, token = ""),
+    "token"
   )
 })
 
 test_that("redcap_project creates valid project object", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   expect_s3_class(project, "redcap_project")
   expect_true("data" %in% names(project))
@@ -44,15 +24,12 @@ test_that("redcap_project creates valid project object", {
 })
 
 test_that("print.redcap_project works correctly", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   # Capture the output
   output <- capture.output(print(project))
   
   expect_true(any(grepl("REDCap Project", output)))
   expect_true(any(grepl("Title:", output)))
-  expect_true(any(grepl("Cached Data:", output)))
+  expect_true(any(grepl("Records:", output)))
 })

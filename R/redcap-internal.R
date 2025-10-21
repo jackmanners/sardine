@@ -31,8 +31,8 @@
 
   cli::cli_alert_info("Creating REDCap project connection...")
 
-  # Create base connection for API calls
-  connection <- list(
+  # Create a proper typed connection for API calls
+  connection <- redcap_connection(
     url = url,
     token = token,
     ssl_verify = ssl_verify,
@@ -71,6 +71,74 @@
     NULL
   })
 
+  # Fetch arms, events, instruments, and instrument-event mappings from API
+  arms <- tryCatch({
+    res <- redcap_export_arms(connection)
+    cli::cli_alert_info("Fetched {nrow(res)} arm(s)")
+    res
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not fetch arms: {e$message}"); tibble::tibble() })
+
+  events <- tryCatch({
+    res <- if (is.data.frame(arms) && nrow(arms) > 0 && "arm_num" %in% names(arms)) {
+      redcap_export_events(connection, arms = arms$arm_num)
+    } else {
+      redcap_export_events(connection)
+    }
+    if (is.data.frame(res)) {
+      cli::cli_alert_info("Fetched {nrow(res)} event(s)")
+      if (nrow(res) == 0) {
+        cli::cli_alert_warning("No events returned by API. This typically means the project is not longitudinal or the token lacks privileges.")
+      }
+    }
+    res
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not fetch events: {e$message}"); tibble::tibble() })
+
+  instruments <- tryCatch({
+    res <- redcap_export_instruments(connection)
+    cli::cli_alert_info("Fetched {nrow(res)} instrument(s)")
+    res
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not fetch instruments: {e$message}"); tibble::tibble() })
+
+  instrument_event_mappings <- tryCatch({
+    res <- if (is.data.frame(arms) && nrow(arms) > 0 && "arm_num" %in% names(arms)) {
+      redcap_export_instrument_event_mappings(connection, arms = arms$arm_num)
+    } else {
+      redcap_export_instrument_event_mappings(connection)
+    }
+    if (is.data.frame(res)) cli::cli_alert_info("Fetched {nrow(res)} instrument-event mapping row(s)")
+    res
+  }, error = function(e) {
+    cli::cli_alert_warning("Could not fetch instrument-event mappings: {e$message}"); tibble::tibble() })
+
+  # Extract arms, events, instruments, fields from metadata if available
+  extract_structure <- function(metadata) {
+    arms <- if ("arm_num" %in% names(metadata) && "arm_name" %in% names(metadata)) {
+      unique(metadata[, c("arm_num", "arm_name")])
+    } else {
+      data.frame()
+    }
+    events <- if ("event_name" %in% names(metadata) && "arm_num" %in% names(metadata)) {
+      unique(metadata[, c("event_name", "arm_num")])
+    } else {
+      data.frame()
+    }
+    instruments <- if ("form_name" %in% names(metadata) && "form_label" %in% names(metadata)) {
+      unique(metadata[, c("form_name", "form_label")])
+    } else {
+      data.frame()
+    }
+    fields <- if ("field_name" %in% names(metadata)) {
+      metadata[, c("field_name", intersect(c("field_label", "field_type", "form_name", "event_name"), names(metadata)))]
+    } else {
+      data.frame()
+    }
+    list(arms = arms, events = events, instruments = instruments, fields = fields)
+  }
+  structure <- extract_structure(metadata)
+
   # Create project object
   # Determine id field from data (first column) or metadata, fallback to 'record_id'
   id_field <- if (!is.null(data) && ncol(data) > 0) {
@@ -88,6 +156,11 @@
     dictionary = metadata,  # Alias for compatibility with validation functions
     project_info = project_info,
     id_field = id_field,
+    arms = arms,
+    events = events,
+    instruments = instruments,
+    instrument_event_mappings = instrument_event_mappings,
+    fields = if ("field_name" %in% names(metadata)) metadata[, c("field_name", intersect(c("field_label", "field_type", "form_name", "event_name"), names(metadata)))] else tibble::tibble(),
     refresh = function() {
       cli::cli_alert_info("Refreshing data from REDCap...")
       tryCatch({
@@ -215,19 +288,39 @@
       cli::cli_alert_success("Successfully piped data from source to target project")
       invisible(result)
     },
-    info = function() {
+    info = function(structure = FALSE) {
       cat("REDCap Project\n")
       cat("==============\n\n")
       cat("Title:", project_info$project_title, "\n")
       cat("URL:", stringr::str_remove(url, "/api/?$"), "\n")
-    cat("Created:", format(project$.created_at, "%Y-%m-%d %H:%M:%S"), "\n")
-      if (!is.null(data)) cat("Cached Data:", nrow(data), "records,", ncol(data), "fields\n") else cat("Cached Data: None\n")
+      cat("Created:", format(project$.created_at, "%Y-%m-%d %H:%M:%S"), "\n")
+      # Print summary counts
+      cat("Records:", if (!is.null(data)) nrow(data) else 0, "\n")
+      cat("Fields:", if (!is.null(data)) ncol(data) else 0, "\n")
+      cat("Arms:", if (is.data.frame(project$arms)) nrow(project$arms) else 0, "\n")
+      cat("Events:", if (is.data.frame(project$events)) nrow(project$events) else 0, "\n")
+      cat("Instruments:", if (is.data.frame(project$instruments)) nrow(project$instruments) else 0, "\n")
       if (!is.null(metadata)) cat("Metadata:", nrow(metadata), "fields defined\n")
       cat("\nAccess data with: project$data\n")
       cat("Refresh data with: project$refresh()\n")
       cat("Import data with: project$import(data)\n")
       cat("Pipe data with: project$piping(source_project, source_fields, target_fields)\n")
+      if (structure) {
+        cat("\n--- Project Structure ---\n")
+        if (exists("summarise_project_structure", mode = "function")) {
+          summarise_project_structure(project)
+        } else {
+          cat("summarise_project_structure() not found. Please update sardine package.\n")
+        }
+      }
       invisible(project)
+    },
+    explore = function() {
+      if (exists("explore_project_shiny", mode = "function")) {
+        explore_project_shiny(project)
+      } else {
+        stop("explore_project_shiny() not found. Please update sardine package.")
+      }
     }
   )
   class(project) <- c("redcap_project", "sardine_project")

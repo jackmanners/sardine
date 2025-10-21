@@ -1,51 +1,40 @@
 # Tests for REDCap project data access and manipulation
-# Note: These tests require a real REDCap instance with credentials
+# Note: Tests use a hardcoded test project to avoid testing on production
+
+# Test credentials for dedicated testing project
+TEST_URL <- "https://researchsurvey.flinders.edu.au/api/"
+TEST_TOKEN <- "6DB3351D46845FB617675D4AECC7B211"
 
 test_that("project data is accessible", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   expect_true("data" %in% names(project))
   expect_true(is.data.frame(project$data) || is.null(project$data))
 })
 
 test_that("project metadata is accessible", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   expect_true("metadata" %in% names(project))
   expect_true(is.data.frame(project$metadata) || is.null(project$metadata))
 })
 
 test_that("project info is accessible", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   expect_true("project_info" %in% names(project))
   expect_true(is.list(project$project_info))
 })
 
 test_that("project refresh works", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   expect_true(is.function(project$refresh))
   expect_no_error(project$refresh())
 })
 
 test_that("project info method works", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   expect_true(is.function(project$info))
   output <- capture.output(project$info())
@@ -53,10 +42,7 @@ test_that("project info method works", {
 })
 
 test_that("data quality functions work with project", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   # Skip if no data
   skip_if(is.null(project$data) || nrow(project$data) == 0,
@@ -115,10 +101,7 @@ test_that("data quality functions work with project", {
 })
 
 test_that("metadata can be used for field filtering", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   skip_if(is.null(project$metadata) || nrow(project$metadata) == 0,
           "No metadata available")
@@ -135,10 +118,7 @@ test_that("metadata can be used for field filtering", {
 })
 
 test_that("project object has expected structure", {
-  skip_if_not(Sys.getenv("REDCAP_URL") != "" && Sys.getenv("REDCAP_TOKEN") != "",
-              "REDCap credentials not available in environment")
-  
-  project <- redcap_project()
+  project <- redcap_project(url = TEST_URL, token = TEST_TOKEN)
   
   # Check class
   expect_s3_class(project, "redcap_project")

@@ -4,28 +4,11 @@
 #' Tests the connection to REDCap API by making a simple request to verify
 #' that the URL and token are valid and the API is accessible.
 #'
-#' @param connection A redcap_connection object created by \code{\link{redcap_connection}}
+#' @param connection A redcap_connection object
 #' @param ... Additional arguments (currently unused)
 #'
 #' @return Logical. TRUE if connection is successful, FALSE otherwise
 #'
-#' @export
-#' @rdname test_connection
-#' @examples
-#' \dontrun{
-#'   conn <- redcap_connection(url = "https://example/api/", token = "TOKEN")
-#'   ok <- test_connection(conn)
-#' }
-
-test_connection <- function(connection, ...) {
-  UseMethod("test_connection")
-}
-
-#' @export
-test_connection.default <- function(connection, ...) {
-  rlang::abort("No test_connection method for objects of this class")
-}
-
 #' @export
 test_connection.redcap_connection <- function(connection, ...) {
   tryCatch({
@@ -77,6 +60,10 @@ test_connection.redcap_connection <- function(connection, ...) {
     format = format,
     ...
   )
+  # Ensure error messages are also returned in the requested format when possible
+  if (is.null(body_params$returnFormat) && !is.null(format)) {
+    body_params$returnFormat <- format
+  }
   
   # Remove NULL parameters
   body_params <- body_params[!sapply(body_params, is.null)]
@@ -85,7 +72,9 @@ test_connection.redcap_connection <- function(connection, ...) {
   request <- httr2::request(connection$url) |>
     httr2::req_headers(
       "Content-Type" = "application/x-www-form-urlencoded",
-      "User-Agent" = paste0("sardine/", utils::packageVersion("sardine"), " (R)")
+      "User-Agent" = paste0("sardine/", utils::packageVersion("sardine"), " (R)"),
+      # Help REDCap return JSON where appropriate
+      "Accept" = if (identical(format, "json")) "application/json" else "*/*"
     ) |>
     httr2::req_body_form(!!!body_params)
   

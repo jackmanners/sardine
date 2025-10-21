@@ -1,0 +1,705 @@
+---
+title: "Table One and Demographic Reporting"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Table One and Demographic Reporting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# Table One and Demographic Reporting with Sardine
+
+This vignette demonstrates how to generate publication-ready descriptive statistics tables (commonly called "Table 1") and demographic summaries from REDCap data using the sardine package.
+
+## What is Table One?
+
+Table One is typically the first table in a research manuscript that presents:
+- Baseline characteristics of study participants
+- Summary statistics (n, %, mean, SD, median, IQR)
+- Comparisons between groups (optional)
+- Statistical test results (optional)
+
+The `generate_table_one()` function automates this process with flexible options for variable selection, stratification, statistical testing, and output formatting.
+
+## Setup
+
+```{r setup}
+library(sardine)
+library(dplyr)
+library(knitr)
+```
+
+## Project Setup
+
+```{r project_setup, eval=FALSE}
+# Load environment and create project
+load_env()
+project <- redcap_project()
+
+# View project structure
+project$info()
+```
+
+## Basic Table One
+
+### All Variables (Default)
+
+The simplest approach includes all non-ID fields:
+
+```{r basic_all, eval=FALSE}
+# Generate table with all variables
+table_one <- generate_table_one(project)
+print(table_one)
+```
+
+Example output:
+```
+Table 1: Baseline Characteristics
+Total N: 150
+
+Variable                     Type           Overall
+--------------------------------------------------------
+N                                           150
+Age (years)                  Mean (SD)      42.3 (12.5)
+  Missing                    n (%)          3 (2.0%)
+Gender                                      n = 150
+  Male                       n (%)          85 (56.7%)
+  Female                     n (%)          65 (43.3%)
+BMI (kg/m²)                  Mean (SD)      26.4 (4.8)
+  Missing                    n (%)          8 (5.3%)
+Systolic BP (mmHg)           Mean (SD)      128.5 (15.2)
+Smoking Status                              n = 150
+  Never                      n (%)          90 (60.0%)
+  Former                     n (%)          35 (23.3%)
+  Current                    n (%)          25 (16.7%)
+```
+
+Note: The table includes an N row at the top and a Type column indicating the statistic type (Mean (SD), Median [IQR], or n (%)).
+
+### Selected Variables
+
+Choose specific variables to include:
+
+```{r basic_selected, eval=FALSE}
+# Select specific variables for the table
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "systolic_bp", "smoking_status", "education")
+)
+print(table_one)
+```
+
+## Filtering Data
+
+### Basic Filtering
+
+Apply filters to include only relevant participants:
+
+```{r filter_basic, eval=FALSE}
+# Exclude withdrawn participants
+table_one <- generate_table_one(
+  project,
+  filter = "withdrawn != 1"
+)
+print(table_one)
+```
+
+### Multiple Filters
+
+Combine multiple conditions (all must be TRUE):
+
+```{r filter_multiple, eval=FALSE}
+# Multiple inclusion criteria
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "baseline_score"),
+  filter = c(
+    "withdrawn != 1",           # Not withdrawn
+    "consent_complete == 1",    # Consent completed
+    "age >= 18",                # Adult participants
+    "baseline_complete == 2"    # Baseline assessment complete
+  )
+)
+print(table_one)
+```
+
+The function will report how many records were retained after filtering:
+```
+ℹ Filtered from 200 to 150 records (75.0% retained)
+```
+
+## Stratified Tables (Group Comparisons)
+
+### Simple Stratification
+
+Compare characteristics between groups:
+
+```{r strata_simple, eval=FALSE}
+# Compare treatment groups
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "baseline_score"),
+  strata = "treatment_group"
+)
+print(table_one)
+```
+
+Example output:
+```
+Table 1: Baseline Characteristics by Treatment Group
+
+Variable                     Type           Control        Treatment
+----------------------------------------------------------------------
+N                                           75             75
+Age (years)                  Mean (SD)      42.1 (12.8)    42.5 (12.2)
+Gender                                      n = 75         n = 75
+  Male                       n (%)          42 (56.0%)     43 (57.3%)
+  Female                     n (%)          33 (44.0%)     32 (42.7%)
+BMI (kg/m²)                  Mean (SD)      26.2 (4.7)     26.6 (4.9)
+Baseline Score               Mean (SD)      65.3 (8.2)     64.8 (8.5)
+```
+
+### With Statistical Tests
+
+Add p-values to assess group differences:
+
+```{r strata_tests, eval=FALSE}
+# Include statistical tests
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "smoking_status", "baseline_score"),
+  strata = "treatment_group",
+  test = TRUE,
+  test_type = "auto"  # Automatic test selection
+)
+print(table_one)
+```
+
+Output includes p-values:
+```
+Variable                     Type          Control        Treatment      P-value
+-----------------------------------------------------------------------------------
+N                                          75             75             
+Age (years)                  Mean (SD)     42.1 (12.8)    42.5 (12.2)    0.843
+Gender                                     n = 75         n = 75         0.867
+  Male                       n (%)         42 (56.0%)     43 (57.3%)
+  Female                     n (%)         33 (44.0%)     32 (42.7%)
+BMI (kg/m²)                  Mean (SD)     26.2 (4.7)     26.6 (4.9)     0.592
+Smoking Status                             n = 75         n = 75         0.234
+  Never                      n (%)         48 (64.0%)     42 (56.0%)
+  Former                     n (%)         16 (21.3%)     19 (25.3%)
+  Current                    n (%)         11 (14.7%)     14 (18.7%)
+Baseline Score               Mean (SD)     65.3 (8.2)     64.8 (8.5)     0.691
+```
+
+**Statistical Tests Used:**
+- Categorical variables: Chi-square test (or Fisher's exact if expected counts < 5)
+- Continuous variables (2 groups): t-test (parametric) or Wilcoxon (nonparametric)
+- Continuous variables (3+ groups): ANOVA (parametric) or Kruskal-Wallis (nonparametric)
+
+### Multiple Stratification Variables
+
+Stratify by multiple factors:
+
+```{r strata_multiple, eval=FALSE}
+# Stratify by treatment group and study site
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "baseline_score"),
+  strata = c("treatment_group", "study_site")
+)
+print(table_one)
+```
+
+## Variable Type Control
+
+### Automatic Detection
+
+By default, variable types are detected from:
+1. User-specified `cat_vars` and `cont_vars` (highest priority)
+2. REDCap metadata field types
+3. Data inspection (variables with <10 unique values treated as categorical)
+
+### Force Categorical Variables
+
+Sometimes numeric variables should be treated as categorical:
+
+```{r force_categorical, eval=FALSE}
+# Force certain variables to be categorical
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "education_level", "income_bracket", "bmi"),
+  cat_vars = c("education_level", "income_bracket"),  # Force categorical
+  cont_vars = c("age", "bmi")  # Force continuous
+)
+```
+
+Common cases for forcing categorical:
+- Ordinal scales (Likert scales, education levels)
+- Income brackets
+- Numeric codes representing categories
+- Count variables you want to display as categories
+
+### Force Continuous Variables
+
+Override incorrect REDCap metadata:
+
+```{r force_continuous, eval=FALSE}
+# REDCap sometimes misclassifies age as text/categorical
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "weight", "height", "bmi", "gender"),
+  cont_vars = c("age", "weight", "height", "bmi"),
+  cat_vars = c("gender")
+)
+```
+
+## Non-Normal Distributions
+
+### Median and IQR
+
+For skewed continuous variables, report median [IQR] instead of mean (SD):
+
+```{r non_normal, eval=FALSE}
+# Specify non-normal variables
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "bmi", "cholesterol", "triglycerides", "income"),
+  cont_vars = c("age", "bmi", "cholesterol", "triglycerides", "income"),
+  non_normal = c("cholesterol", "triglycerides", "income"),  # Use median [IQR]
+  strata = "treatment_group",
+  test = TRUE,
+  test_type = "nonparametric"  # Use nonparametric tests
+)
+```
+
+Output:
+```
+Variable                     Type            Control          Treatment        P-value
+----------------------------------------------------------------------------------------
+N                                            75               75               
+Age (years)                  Mean (SD)       42.1 (12.8)      42.5 (12.2)      0.843
+BMI (kg/m²)                  Mean (SD)       26.2 (4.7)       26.6 (4.9)       0.592
+Cholesterol (mg/dL)          Median [IQR]    185 [165-210]    188 [170-215]    0.456
+Triglycerides (mg/dL)        Median [IQR]    135 [98-180]     142 [105-185]    0.523
+Income ($)                   Median [IQR]    55000 [42000-75000] 58000 [45000-78000] 0.321
+```
+
+Note how the Type column clearly indicates which variables use Mean (SD) and which use Median [IQR].
+
+### Test Type Selection
+
+Control which statistical tests are used:
+
+```{r test_types, eval=FALSE}
+# Parametric tests (assumes normality)
+table_parametric <- generate_table_one(
+  project,
+  vars = c("age", "bmi", "baseline_score"),
+  strata = "treatment_group",
+  test = TRUE,
+  test_type = "parametric"  # t-test or ANOVA
+)
+
+# Nonparametric tests (no normality assumption)
+table_nonparametric <- generate_table_one(
+  project,
+  vars = c("age", "bmi", "baseline_score"),
+  strata = "treatment_group",
+  test = TRUE,
+  test_type = "nonparametric"  # Wilcoxon or Kruskal-Wallis
+)
+
+# Automatic selection (recommended)
+table_auto <- generate_table_one(
+  project,
+  vars = c("age", "bmi", "baseline_score"),
+  strata = "treatment_group",
+  test = TRUE,
+  test_type = "auto"  # Chooses based on data distribution
+)
+```
+
+## Missing Data Handling
+
+### Include Missing Counts
+
+Show how much data is missing:
+
+```{r missing_include, eval=FALSE}
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "smoking_status"),
+  include_missing = TRUE  # Default
+)
+```
+
+Output shows missing data:
+```
+Variable                     Overall (N=150)
+--------------------------------------------
+Age (years)                  42.3 (12.5)
+  Missing                    3 (2.0%)
+Gender, n (%)
+  Male                       85 (56.7%)
+  Female                     65 (43.3%)
+  Missing                    0 (0.0%)
+BMI (kg/m²)                  26.4 (4.8)
+  Missing                    8 (5.3%)
+```
+
+### Exclude Missing Counts
+
+For cleaner tables when missing data is minimal:
+
+```{r missing_exclude, eval=FALSE}
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi"),
+  include_missing = FALSE
+)
+```
+
+## Output Formatting
+
+### Default Data Frame
+
+```{r format_df, eval=FALSE}
+# Returns a data frame
+table_df <- generate_table_one(
+  project,
+  output_format = "data.frame"  # Default
+)
+
+# Can manipulate as needed
+table_df %>% filter(Variable != "Missing")
+```
+
+### Kable (R Markdown)
+
+For R Markdown documents:
+
+```{r format_kable, eval=FALSE}
+# Generate kable table
+table_kable <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "treatment_group"),
+  strata = "treatment_group",
+  output_format = "kable"
+)
+
+# Renders nicely in R Markdown
+table_kable
+```
+
+### GT Package
+
+For advanced table formatting:
+
+```{r format_gt, eval=FALSE}
+# Requires gt package
+library(gt)
+
+table_gt <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "baseline_score"),
+  strata = "treatment_group",
+  test = TRUE,
+  output_format = "gt"
+)
+
+# Can further customize with gt functions
+table_gt %>%
+  tab_header(
+    title = "Baseline Characteristics",
+    subtitle = "Randomized Clinical Trial"
+  ) %>%
+  tab_source_note("Data as of 2025-10-21")
+```
+
+### Flextable (Word Export)
+
+For Microsoft Word documents:
+
+```{r format_flextable, eval=FALSE}
+# Requires flextable package
+library(flextable)
+
+table_flex <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "baseline_score"),
+  strata = "treatment_group",
+  test = TRUE,
+  output_format = "flextable"
+)
+
+# Export to Word
+save_as_docx(table_flex, path = "table_one.docx")
+```
+
+## Common Use Cases
+
+### Clinical Trial Baseline Characteristics
+
+```{r usecase_trial, eval=FALSE}
+# Standard baseline table for clinical trial
+baseline_table <- generate_table_one(
+  project,
+  vars = c(
+    "age", "gender", "race", "ethnicity",
+    "height", "weight", "bmi",
+    "systolic_bp", "diastolic_bp",
+    "medical_history_diabetes", "medical_history_hypertension",
+    "baseline_pain_score", "baseline_function_score"
+  ),
+  filter = c(
+    "consent_complete == 2",
+    "eligibility_complete == 2",
+    "baseline_complete == 2"
+  ),
+  strata = "treatment_arm",
+  cat_vars = c("gender", "race", "ethnicity", 
+               "medical_history_diabetes", "medical_history_hypertension"),
+  cont_vars = c("age", "height", "weight", "bmi", 
+                "systolic_bp", "diastolic_bp",
+                "baseline_pain_score", "baseline_function_score"),
+  test = TRUE,
+  test_type = "auto",
+  digits = 1,
+  output_format = "gt"
+)
+```
+
+### Cohort Study Demographics
+
+```{r usecase_cohort, eval=FALSE}
+# Descriptive table for cohort study
+cohort_demographics <- generate_table_one(
+  project,
+  vars = c(
+    "age", "gender", "education", "employment_status",
+    "marital_status", "household_income",
+    "smoking_status", "alcohol_use", "physical_activity",
+    "bmi", "comorbidity_count"
+  ),
+  filter = "enrolled == 1",
+  cat_vars = c("gender", "education", "employment_status", 
+               "marital_status", "smoking_status", "alcohol_use"),
+  cont_vars = c("age", "bmi", "physical_activity", "comorbidity_count"),
+  non_normal = c("household_income", "comorbidity_count"),
+  include_missing = TRUE,
+  digits = 1
+)
+```
+
+### Case-Control Comparison
+
+```{r usecase_case_control, eval=FALSE}
+# Compare cases vs controls
+case_control_table <- generate_table_one(
+  project,
+  vars = c(
+    "age", "gender", "bmi",
+    "smoking_history", "family_history",
+    "biomarker_a", "biomarker_b", "biomarker_c"
+  ),
+  filter = "study_complete == 2",
+  strata = "case_status",  # Case vs Control
+  cat_vars = c("gender", "smoking_history", "family_history"),
+  cont_vars = c("age", "bmi", "biomarker_a", "biomarker_b", "biomarker_c"),
+  non_normal = c("biomarker_a", "biomarker_c"),  # Skewed biomarkers
+  test = TRUE,
+  test_type = "auto",
+  output_format = "flextable"
+)
+```
+
+### Multi-Site Study
+
+```{r usecase_multisite, eval=FALSE}
+# Compare across study sites
+site_comparison <- generate_table_one(
+  project,
+  vars = c("age", "gender", "race", "bmi", "baseline_score"),
+  filter = "enrolled == 1",
+  strata = "study_site",  # Multiple sites
+  cat_vars = c("gender", "race"),
+  cont_vars = c("age", "bmi", "baseline_score"),
+  test = TRUE,
+  digits = 1
+)
+```
+
+### Subgroup Analysis
+
+```{r usecase_subgroup, eval=FALSE}
+# Table for specific subgroup
+elderly_table <- generate_table_one(
+  project,
+  vars = c(
+    "age", "gender", "frailty_score", "cognitive_score",
+    "falls_past_year", "medications_count"
+  ),
+  filter = c(
+    "age >= 65",
+    "baseline_complete == 2"
+  ),
+  strata = "intervention_group",
+  cont_vars = c("age", "frailty_score", "cognitive_score", "medications_count"),
+  cat_vars = c("gender", "falls_past_year"),
+  non_normal = "medications_count",
+  test = TRUE,
+  output_format = "gt"
+)
+```
+
+## Combining with Data Quality Reports
+
+Integrate Table One with data quality checking:
+
+```{r combine_quality, eval=FALSE}
+# Check data quality first
+quality_report <- analyze_missing_data(project)
+print(quality_report)
+
+# Generate Table One after confirming data quality
+table_one <- generate_table_one(
+  project,
+  vars = quality_report %>% 
+    filter(missing_percent < 10) %>%  # Only variables with <10% missing
+    pull(field),
+  filter = "data_quality_passed == 1",
+  strata = "study_group"
+)
+```
+
+## Exporting Results
+
+### Save Multiple Formats
+
+```{r export_multiple, eval=FALSE}
+# Generate table once
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "treatment_group"),
+  strata = "treatment_group",
+  test = TRUE
+)
+
+# Export to CSV
+write.csv(table_one, "table_one.csv", row.names = FALSE)
+
+# Export to formatted table for Word
+library(flextable)
+table_flex <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi", "treatment_group"),
+  strata = "treatment_group",
+  test = TRUE,
+  output_format = "flextable"
+)
+save_as_docx(table_flex, path = "table_one.docx")
+
+# Export for LaTeX
+library(xtable)
+print(xtable(table_one), file = "table_one.tex")
+```
+
+## Advanced Tips
+
+### Custom Decimal Places
+
+```{r tips_decimals, eval=FALSE}
+# High precision for lab values
+lab_table <- generate_table_one(
+  project,
+  vars = c("glucose", "hba1c", "cholesterol"),
+  digits = 2  # Two decimal places
+)
+```
+
+### Reproducible Reports
+
+```{r tips_reproducible, eval=FALSE}
+# Document table generation settings
+table_settings <- list(
+  date_generated = Sys.Date(),
+  filter_criteria = c("withdrawn != 1", "consent_complete == 1"),
+  stratification = "treatment_group",
+  test_type = "auto",
+  non_normal_vars = c("triglycerides", "income")
+)
+
+# Generate table
+table_one <- generate_table_one(
+  project,
+  vars = c("age", "gender", "bmi"),
+  filter = table_settings$filter_criteria,
+  strata = table_settings$stratification,
+  test = TRUE,
+  test_type = table_settings$test_type
+)
+
+# Save settings with table
+saveRDS(list(table = table_one, settings = table_settings), 
+        "table_one_with_metadata.rds")
+```
+
+### Automated Reporting
+
+```{r tips_automated, eval=FALSE}
+# Function for standardized table generation
+generate_standard_table_one <- function(project, 
+                                       demographic_vars = c("age", "gender", "race"),
+                                       clinical_vars = c("bmi", "systolic_bp"),
+                                       strata_var = NULL) {
+  
+  all_vars <- c(demographic_vars, clinical_vars)
+  
+  generate_table_one(
+    project,
+    vars = all_vars,
+    filter = c("consent_complete == 2", "withdrawn != 1"),
+    strata = strata_var,
+    cat_vars = demographic_vars,
+    cont_vars = clinical_vars,
+    test = !is.null(strata_var),
+    include_missing = TRUE,
+    digits = 1
+  )
+}
+
+# Use across multiple projects
+table_project1 <- generate_standard_table_one(project, strata_var = "treatment_group")
+```
+
+## Best Practices
+
+1. **Always filter appropriately**: Exclude withdrawn, incomplete, or test records
+2. **Force variable types when needed**: REDCap metadata isn't always perfect
+3. **Report non-normal distributions correctly**: Use median [IQR] for skewed data
+4. **Include missing data information**: Transparency about data completeness
+5. **Choose appropriate statistical tests**: Consider your data distribution and assumptions
+6. **Document your choices**: Record filter criteria, variable classifications, and test selections
+7. **Check balance in randomized trials**: P-values shouldn't be significant at baseline
+8. **Verify results**: Spot-check a few values against raw data
+
+## Summary
+
+The `generate_table_one()` function provides:
+
+- **Automated descriptive statistics** with appropriate formatting
+- **Flexible variable selection and filtering** to focus on relevant data
+- **Stratification and statistical testing** for group comparisons
+- **Override controls** for variable type classification
+- **Multiple output formats** for different publication needs
+- **Comprehensive handling** of categorical, continuous, and non-normal data
+
+This enables efficient creation of publication-ready baseline characteristics tables with minimal manual data manipulation, while maintaining full control over statistical approaches and presentation.
