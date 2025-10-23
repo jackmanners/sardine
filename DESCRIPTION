@@ -26,7 +26,9 @@ Imports:
     utils,
     dotenv,
     tidyr,
-    scales
+    scales,
+    ggplot2,
+    readr
 Suggests:
     testthat (>= 3.0.0),
     knitr,
@@ -34,7 +36,6 @@ Suggests:
     covr,
     withr,
     httptest2,
-    ggplot2,
     plotly
 Config/testthat/edition: 3
 VignetteBuilder: knitr

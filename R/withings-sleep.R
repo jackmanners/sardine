@@ -1,3 +1,6 @@
+#' @importFrom ggplot2 ggplot aes geom_point geom_vline scale_y_continuous scale_x_continuous scale_color_manual xlab ylab theme_classic theme element_text element_blank guides guide_legend ggsave
+NULL
+
 #' Create a Withings Sleep Analysis Object
 #'
 #' @description
@@ -258,8 +261,6 @@ print.withings_sleep <- function(x, ...) {
   }
   invisible(x)
 }
-
-library(ggplot2)
 
 #' Calculate Sleep Regularity Index (SRI) from Withings Epoch Data
 #'

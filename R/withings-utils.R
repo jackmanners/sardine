@@ -105,6 +105,7 @@ withings_json_to_df <- function(x) {
 #'
 #' @param path Path to CSV (epochs or summary)
 #' @return tibble
+#' @importFrom readr read_csv
 #' @keywords internal
 withings_read_csv <- function(path) {
   readr::read_csv(path, show_col_types = FALSE, progress = FALSE)
