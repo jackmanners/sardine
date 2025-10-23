@@ -22,39 +22,68 @@ navbar:
       aria-label: GitHub
 
 reference:
-  - title: "Connection Management"  
+  - title: "Connections"
     desc: "Creating and testing connections"
     contents:
       - sardine_connection
       - redcap_connection
       - test_connection
-      - print.sardine_connection
-      - test_connection.default
       - test_connection.redcap_connection
-      
-  - title: "REDCap Metadata"
-    desc: "Functions for retrieving project metadata"
+
+  - title: "REDCap: Project and Exports"
+    desc: "Working with REDCap projects and exporting metadata"
     contents:
-      - redcap_project_info
-      - redcap_metadata
-      - redcap_field_names
-      
-  - title: "Data Quality & Validation"
-    desc: "Comprehensive data quality assessment and validation"
+      - redcap_project
+      - redcap_export_arms
+      - redcap_export_events
+      - redcap_export_instruments
+      - redcap_export_instrument_event_mappings
+
+  - title: "REDCap: Summaries & Reports"
+    desc: "Completion, retention and attrition summaries"
+    contents:
+      - get_event_completion_summary
+      - get_form_completion_status
+      - get_retention_summary
+      - get_attrition_over_time
+      - plot_attrition_curve
+
+  - title: "Data Quality, Tables and Exploration"
+    desc: "Validation, descriptive tables and interactive exploration"
     contents:
       - analyze_missing_data
       - validate_data_types
       - generate_data_quality_report
-      - print.missing_data_analysis
-      - print.data_type_validation
-      - print.data_quality_report
-      
-  - title: "Testing & Examples"
-    desc: "Sample data and testing utilities"
-    contents:
-      - create_sample_redcap_project
+      - generate_table_one
       - data-validation
-      - validation-examples
+      - as_datatable
+      - explore_project_shiny
+      - summarise_project_structure
+
+  - title: "Withings: Sleep Analysis"
+    desc: "Constructing sleep objects, reports, SRI and exports"
+    contents:
+      - withings_sleep
+      - withings_sleep_report
+      - withings_sleep_report_render
+      - reformat.withings_sleep
+      - SRI_from_binary
+      - combine_withings_epoch_summary
+      - withings_json_to_df
+      - withings_read_csv
+      - withings_summary_stats
+
+  - title: "S3 print methods"
+    desc: "Print methods for sardine classes"
+    contents:
+      - print.attrition_over_time
+      - print.data_quality_report
+      - print.data_type_validation
+      - print.event_completion_summary
+      - print.missing_data_analysis
+      - print.redcap_project
+      - print.retention_summary
+      - print.table_one
 
 articles:
   - title: "Getting Started"
@@ -73,3 +102,4 @@ articles:
       - redcap/01-data-extraction
       - redcap/02-data-import
       - redcap/03-report-generation
+      - redcap/04-table-one-demographics

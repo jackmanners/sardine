@@ -34,7 +34,8 @@ Suggests:
     covr,
     withr,
     httptest2,
-    ggplot2
+    ggplot2,
+    plotly
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 BuildVignettes: false

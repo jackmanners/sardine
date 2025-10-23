@@ -67,3 +67,7 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+*.png
+test_modal.R
+report-generator.ts
+generate-report-funtions.py
