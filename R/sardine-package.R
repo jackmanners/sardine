@@ -54,14 +54,29 @@
 #' @importFrom httr2 resp_body_json resp_body_string resp_body_raw resp_status resp_is_error
 #' @importFrom jsonlite fromJSON toJSON
 #' @importFrom cli cli_alert_success cli_alert_danger cli_alert_info cli_alert_warning cli_ul
-#' @importFrom rlang abort warn inform
+#' @importFrom rlang abort warn inform `:=`
 #' @importFrom glue glue
-#' @importFrom dplyr bind_rows mutate select filter arrange
+#' @importFrom dplyr bind_rows mutate select filter arrange `%>%` everything desc
 #' @importFrom tibble tibble as_tibble
 #' @importFrom purrr map map_chr map_dfr
 #' @importFrom stringr str_detect str_extract str_replace_all
 #' @importFrom dotenv load_dot_env
 NULL
 
-# Suppress R CMD check notes about global variables
-utils::globalVariables(c(".", "field_name", "field_type", "record_id"))
+# Suppress R CMD check notes about global variables and imported functions
+# Stats utilities used throughout the package
+#' @importFrom stats aov chisq.test fisher.test kruskal.test median quantile sd shapiro.test t.test wilcox.test
+# Utils helpers used by multiple modules
+#' @importFrom utils head write.table
+
+utils::globalVariables(c(
+	".",
+	# Dictionary/data-validation fields
+	"field_name", "field_label", "field_type", "form_name", "record_id",
+	"missing_count", "missing_rate", "missing_rate_pct", "above_threshold", "flag",
+	# Completion/attrition summaries
+	"unique_event_name", "redcap_event_name", "n_participants", "status", "value",
+	"day_offset", "event_name", "retention_rate", "n_retained",
+	# Withings SRI raster aesthetics
+	"hour", "day_num"
+))

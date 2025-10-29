@@ -707,7 +707,7 @@ generate_table_one <- function(project,
 #'
 #' @keywords internal
 .format_p_value <- function(p) {
-  if (is.na(p)) return("—")
+  if (is.na(p)) return("\u2014")
   if (p < 0.001) return("<0.001")
   return(sprintf("%.3f", p))
 }

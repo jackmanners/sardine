@@ -136,13 +136,13 @@
   # Build metrics table (separate from plot)
   metrics_df <- data.frame(
     Date = y_labels,
-    TST = sapply(plot_data, function(d) ifelse(is.na(d$tst_h), "—", .format_hours_and_minutes(d$tst_h))),
-    TIB = sapply(plot_data, function(d) ifelse(is.na(d$tib_h), "—", .format_hours_and_minutes(d$tib_h))),
-    Efficiency = sapply(plot_data, function(d) ifelse(is.na(d$eff_pct), "—", paste0(round(d$eff_pct), "%"))),
-    HR = sapply(plot_data, function(d) ifelse(is.na(d$hr_avg), "—", paste0(d$hr_avg, " bpm"))),
-    Snoring = sapply(plot_data, function(d) ifelse(is.na(d$snor_min), "—", paste0(d$snor_min, " min"))),
-    AHI = sapply(plot_data, function(d) ifelse(is.na(d$ahi), "—", as.character(d$ahi))),
-    `Out of Bed` = sapply(plot_data, function(d) ifelse(is.na(d$out_bed), "—", as.character(d$out_bed))),
+  TST = sapply(plot_data, function(d) ifelse(is.na(d$tst_h), "\u2014", .format_hours_and_minutes(d$tst_h))),
+  TIB = sapply(plot_data, function(d) ifelse(is.na(d$tib_h), "\u2014", .format_hours_and_minutes(d$tib_h))),
+  Efficiency = sapply(plot_data, function(d) ifelse(is.na(d$eff_pct), "\u2014", paste0(round(d$eff_pct), "%"))),
+  HR = sapply(plot_data, function(d) ifelse(is.na(d$hr_avg), "\u2014", paste0(d$hr_avg, " bpm"))),
+  Snoring = sapply(plot_data, function(d) ifelse(is.na(d$snor_min), "\u2014", paste0(d$snor_min, " min"))),
+  AHI = sapply(plot_data, function(d) ifelse(is.na(d$ahi), "\u2014", as.character(d$ahi))),
+  `Out of Bed` = sapply(plot_data, function(d) ifelse(is.na(d$out_bed), "\u2014", as.character(d$out_bed))),
     stringsAsFactors = FALSE,
     check.names = FALSE
   )

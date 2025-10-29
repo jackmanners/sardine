@@ -1,0 +1,396 @@
+══ Building ════════════════════════════════════════════════════════════════════
+Setting env vars:
+• CFLAGS    : -Wall -pedantic
+• CXXFLAGS  : -Wall -pedantic
+• CXX11FLAGS: -Wall -pedantic
+• CXX14FLAGS: -Wall -pedantic
+• CXX17FLAGS: -Wall -pedantic
+• CXX20FLAGS: -Wall -pedantic
+── R CMD build ─────────────────────────────────────────────────────────────────
+* checking for file 'C:\GitRepos\sardine/DESCRIPTION' ... OK
+* preparing 'sardine':
+* checking DESCRIPTION meta-information ... OK
+* checking for LF line-endings in source and make files and shell scripts
+* checking for empty or unneeded directories
+Removed empty directory 'sardine/R/sources/withings'
+Removed empty directory 'sardine/pkgdown/favicon'
+Removed empty directory 'sardine/pkgdown'
+Omitted 'LazyData' from DESCRIPTION
+* building 'sardine_0.1.0.tar.gz'
+
+══ Checking ════════════════════════════════════════════════════════════════════
+Setting env vars:
+• _R_CHECK_CRAN_INCOMING_REMOTE_: FALSE
+• _R_CHECK_CRAN_INCOMING_       : FALSE
+• _R_CHECK_FORCE_SUGGESTS_      : FALSE
+• NOT_CRAN                      : true
+── R CMD check ─────────────────────────────────────────────────────────────────
+* using log directory 'C:/Users/mann0242/AppData/Local/Temp/RtmpMVY55e/file94987ea17dc7/sardine.Rcheck'
+* using R version 4.4.0 (2024-04-24 ucrt)
+* using platform: x86_64-w64-mingw32
+* R was compiled by
+    gcc.exe (GCC) 13.2.0
+    GNU Fortran (GCC) 13.2.0
+* running under: Windows 10 x64 (build 19045)
+* using session charset: UTF-8
+* using option '--no-manual'
+* checking for file 'sardine/DESCRIPTION' ... OK
+* checking extension type ... Package
+* this is package 'sardine' version '0.1.0'
+* package encoding: UTF-8
+* checking package namespace information ... OK
+* checking package dependencies ... NOTE
+Package suggested but not available for checking: 'httptest2'
+* checking if this is a source package ... OK
+* checking if there is a namespace ... OK
+* checking for executable files ... OK
+* checking for hidden files and directories ... OK
+* checking for portable file names ... OK
+* checking whether package 'sardine' can be installed ... OK
+* checking installed package size ... OK
+* checking package directory ... OK
+* checking DESCRIPTION meta-information ... NOTE
+License stub is invalid DCF.
+* checking top-level files ... OK
+* checking for left-over files ... OK
+* checking index information ... OK
+* checking package subdirectories ... OK
+* checking code files for non-ASCII characters ... WARNING
+Found the following files with non-ASCII characters:
+  R/table-one.R
+  R/withings-summary-stats.R
+  R/withings-timing-plot.R
+Portable packages must use only ASCII characters in their R code and
+NAMESPACE directives, except perhaps in comments.
+Use \uxxxx escapes for other characters.
+Function 'tools::showNonASCIIfile' can help in finding non-ASCII
+characters in files.
+* checking R files for syntax errors ... OK
+* checking whether the package can be loaded ... OK
+* checking whether the package can be loaded with stated dependencies ... OK
+* checking whether the package can be unloaded cleanly ... OK
+* checking whether the namespace can be loaded with stated dependencies ... OK
+* checking whether the namespace can be unloaded cleanly ... OK
+* checking loading without being on the library search path ... OK
+* checking dependencies in R code ... WARNING
+'::' or ':::' imports not declared from:
+  'DT' 'data.table' 'flextable' 'gt' 'shiny'
+'loadNamespace' or 'requireNamespace' calls not declared from:
+  'DT' 'flextable' 'gt' 'shiny'
+* checking S3 generic/method consistency ... OK
+* checking replacement functions ... OK
+* checking foreign function calls ... OK
+* checking R code for possible problems ... NOTE
+.analyze_import_changes: no visible global function definition for
+  'head'
+.plot_epoch_line: no visible global function definition for '%>%'
+.plot_hypnogram: no visible global function definition for '%>%'
+.redcap_get_all_records: no visible global function definition for
+  '%>%'
+.redcap_get_metadata: no visible global function definition for '%>%'
+.redcap_get_project_info: no visible global function definition for
+  '%>%'
+.redcap_import_records: no visible global function definition for '%>%'
+.summarize_continuous: no visible global function definition for
+  'median'
+.summarize_continuous: no visible global function definition for
+  'quantile'
+.summarize_continuous: no visible global function definition for 'sd'
+.test_categorical: no visible global function definition for
+  'fisher.test'
+.test_categorical: no visible global function definition for
+  'chisq.test'
+.test_continuous: no visible global function definition for
+  'wilcox.test'
+.test_continuous: no visible global function definition for
+  'kruskal.test'
+.test_continuous: no visible global function definition for 't.test'
+.test_continuous: no visible global function definition for 'aov'
+.test_continuous: no visible global function definition for
+  'shapiro.test'
+SRI_from_binary: no visible global function definition for
+  'write.table'
+SRI_from_binary : <anonymous>: no visible global function definition
+  for 'write.table'
+analyze_missing_data: no visible global function definition for '%>%'
+analyze_missing_data: no visible global function definition for
+  'everything'
+analyze_missing_data: no visible binding for global variable
+  'missing_count'
+analyze_missing_data: no visible binding for global variable
+  'missing_rate'
+analyze_missing_data: no visible global function definition for 'desc'
+analyze_missing_data: no visible binding for global variable
+  'field_label'
+analyze_missing_data: no visible binding for global variable
+  'form_name'
+analyze_missing_data: no visible binding for global variable
+  'above_threshold'
+generate_quality_report_markdown: no visible global function definition
+  for '%>%'
+generate_quality_report_markdown: no visible binding for global
+  variable 'missing_rate'
+generate_quality_report_markdown: no visible binding for global
+  variable 'above_threshold'
+generate_quality_report_markdown: no visible binding for global
+  variable 'form_name'
+generate_quality_report_markdown: no visible binding for global
+  variable 'missing_count'
+generate_quality_report_markdown: no visible binding for global
+  variable 'missing_rate_pct'
+generate_quality_report_markdown: no visible binding for global
+  variable 'flag'
+get_attrition_over_time: no visible global function definition for
+  '%>%'
+get_attrition_over_time: no visible binding for global variable
+  'unique_event_name'
+get_attrition_over_time: no visible binding for global variable
+  'redcap_event_name'
+get_event_completion_summary: no visible global function definition for
+  '%>%'
+get_event_completion_summary: no visible binding for global variable
+  'form_name'
+get_event_completion_summary: no visible binding for global variable
+  'redcap_event_name'
+get_event_completion_summary: no visible binding for global variable
+  'n_participants'
+get_event_completion_summary: no visible binding for global variable
+  'status'
+get_event_completion_summary: no visible binding for global variable
+  'value'
+get_form_completion_status: no visible global function definition for
+  '%>%'
+get_form_completion_status: no visible binding for global variable
+  'redcap_event_name'
+get_retention_summary: no visible global function definition for '%>%'
+get_retention_summary: no visible binding for global variable
+  'day_offset'
+get_retention_summary: no visible binding for global variable
+  'unique_event_name'
+get_retention_summary: no visible binding for global variable
+  'redcap_event_name'
+plot_attrition_curve: no visible binding for global variable
+  'day_offset'
+plot_attrition_curve: no visible binding for global variable
+  'event_name'
+print.attrition_over_time: no visible global function definition for
+  '%>%'
+print.attrition_over_time: no visible binding for global variable
+  'retention_rate'
+print.attrition_over_time: no visible binding for global variable
+  'n_retained'
+print.missing_data_analysis: no visible global function definition for
+  '%>%'
+print.missing_data_analysis: no visible binding for global variable
+  'form_name'
+print.missing_data_analysis: no visible binding for global variable
+  'missing_count'
+print.missing_data_analysis: no visible binding for global variable
+  'missing_rate'
+print.retention_summary: no visible global function definition for
+  '%>%'
+print.retention_summary: no visible binding for global variable
+  'retention_rate'
+print.retention_summary: no visible binding for global variable
+  'n_retained'
+summarise_project_structure: no visible global function definition for
+  'head'
+validate_data_types: no visible global function definition for '%>%'
+validate_data_types: no visible global function definition for 'head'
+withings_sleep_report: no visible global function definition for ':='
+wsleep_sri: no visible binding for global variable 'hour'
+wsleep_sri: no visible binding for global variable 'day_num'
+Undefined global functions or variables:
+  %>% := above_threshold aov chisq.test day_num day_offset desc
+  event_name everything field_label fisher.test flag form_name head
+  hour kruskal.test median missing_count missing_rate missing_rate_pct
+  n_participants n_retained quantile redcap_event_name retention_rate
+  sd shapiro.test status t.test unique_event_name value wilcox.test
+  write.table
+Consider adding
+  importFrom("stats", "aov", "chisq.test", "fisher.test", "kruskal.test",
+             "median", "quantile", "sd", "shapiro.test", "t.test",
+             "wilcox.test")
+  importFrom("utils", "head", "write.table")
+to your NAMESPACE file.
+* checking Rd files ... OK
+* checking Rd metadata ... OK
+* checking Rd cross-references ... OK
+* checking for missing documentation entries ... OK
+* checking for code/documentation mismatches ... OK
+* checking Rd \usage sections ... OK
+* checking Rd contents ... OK
+* checking for unstated dependencies in examples ... OK
+* checking examples ... OK
+* checking for unstated dependencies in 'tests' ... OK
+* checking tests ...
+  Running 'testthat.R'
+ OK
+* DONE
+Status: 2 WARNINGs, 3 NOTEs
+See
+  'C:/Users/mann0242/AppData/Local/Temp/RtmpMVY55e/file94987ea17dc7/sardine.Rcheck/00check.log'
+for details.
+── R CMD check results ────────────────────────────────────── sardine 0.1.0 ────
+Duration: 6m 54.6s
+
+❯ checking code files for non-ASCII characters ... WARNING
+  Found the following files with non-ASCII characters:
+    R/table-one.R
+    R/withings-summary-stats.R
+    R/withings-timing-plot.R
+  Portable packages must use only ASCII characters in their R code and
+  NAMESPACE directives, except perhaps in comments.
+  Use \uxxxx escapes for other characters.
+  Function 'tools::showNonASCIIfile' can help in finding non-ASCII
+  characters in files.
+
+❯ checking dependencies in R code ... WARNING
+  '::' or ':::' imports not declared from:
+    'DT' 'data.table' 'flextable' 'gt' 'shiny'
+  'loadNamespace' or 'requireNamespace' calls not declared from:
+    'DT' 'flextable' 'gt' 'shiny'
+
+❯ checking package dependencies ... NOTE
+  Package suggested but not available for checking: 'httptest2'
+
+❯ checking DESCRIPTION meta-information ... NOTE
+  License stub is invalid DCF.
+
+❯ checking R code for possible problems ... NOTE
+  .analyze_import_changes: no visible global function definition for
+    'head'
+  .plot_epoch_line: no visible global function definition for '%>%'
+  .plot_hypnogram: no visible global function definition for '%>%'
+  .redcap_get_all_records: no visible global function definition for
+    '%>%'
+  .redcap_get_metadata: no visible global function definition for '%>%'
+  .redcap_get_project_info: no visible global function definition for
+    '%>%'
+  .redcap_import_records: no visible global function definition for '%>%'
+  .summarize_continuous: no visible global function definition for
+    'median'
+  .summarize_continuous: no visible global function definition for
+    'quantile'
+  .summarize_continuous: no visible global function definition for 'sd'
+  .test_categorical: no visible global function definition for
+    'fisher.test'
+  .test_categorical: no visible global function definition for
+    'chisq.test'
+  .test_continuous: no visible global function definition for
+    'wilcox.test'
+  .test_continuous: no visible global function definition for
+    'kruskal.test'
+  .test_continuous: no visible global function definition for 't.test'
+  .test_continuous: no visible global function definition for 'aov'
+  .test_continuous: no visible global function definition for
+    'shapiro.test'
+  SRI_from_binary: no visible global function definition for
+    'write.table'
+  SRI_from_binary : <anonymous>: no visible global function definition
+    for 'write.table'
+  analyze_missing_data: no visible global function definition for '%>%'
+  analyze_missing_data: no visible global function definition for
+    'everything'
+  analyze_missing_data: no visible binding for global variable
+    'missing_count'
+  analyze_missing_data: no visible binding for global variable
+    'missing_rate'
+  analyze_missing_data: no visible global function definition for 'desc'
+  analyze_missing_data: no visible binding for global variable
+    'field_label'
+  analyze_missing_data: no visible binding for global variable
+    'form_name'
+  analyze_missing_data: no visible binding for global variable
+    'above_threshold'
+  generate_quality_report_markdown: no visible global function definition
+    for '%>%'
+  generate_quality_report_markdown: no visible binding for global
+    variable 'missing_rate'
+  generate_quality_report_markdown: no visible binding for global
+    variable 'above_threshold'
+  generate_quality_report_markdown: no visible binding for global
+    variable 'form_name'
+  generate_quality_report_markdown: no visible binding for global
+    variable 'missing_count'
+  generate_quality_report_markdown: no visible binding for global
+    variable 'missing_rate_pct'
+  generate_quality_report_markdown: no visible binding for global
+    variable 'flag'
+  get_attrition_over_time: no visible global function definition for
+    '%>%'
+  get_attrition_over_time: no visible binding for global variable
+    'unique_event_name'
+  get_attrition_over_time: no visible binding for global variable
+    'redcap_event_name'
+  get_event_completion_summary: no visible global function definition for
+    '%>%'
+  get_event_completion_summary: no visible binding for global variable
+    'form_name'
+  get_event_completion_summary: no visible binding for global variable
+    'redcap_event_name'
+  get_event_completion_summary: no visible binding for global variable
+    'n_participants'
+  get_event_completion_summary: no visible binding for global variable
+    'status'
+  get_event_completion_summary: no visible binding for global variable
+    'value'
+  get_form_completion_status: no visible global function definition for
+    '%>%'
+  get_form_completion_status: no visible binding for global variable
+    'redcap_event_name'
+  get_retention_summary: no visible global function definition for '%>%'
+  get_retention_summary: no visible binding for global variable
+    'day_offset'
+  get_retention_summary: no visible binding for global variable
+    'unique_event_name'
+  get_retention_summary: no visible binding for global variable
+    'redcap_event_name'
+  plot_attrition_curve: no visible binding for global variable
+    'day_offset'
+  plot_attrition_curve: no visible binding for global variable
+    'event_name'
+  print.attrition_over_time: no visible global function definition for
+    '%>%'
+  print.attrition_over_time: no visible binding for global variable
+    'retention_rate'
+  print.attrition_over_time: no visible binding for global variable
+    'n_retained'
+  print.missing_data_analysis: no visible global function definition for
+    '%>%'
+  print.missing_data_analysis: no visible binding for global variable
+    'form_name'
+  print.missing_data_analysis: no visible binding for global variable
+    'missing_count'
+  print.missing_data_analysis: no visible binding for global variable
+    'missing_rate'
+  print.retention_summary: no visible global function definition for
+    '%>%'
+  print.retention_summary: no visible binding for global variable
+    'retention_rate'
+  print.retention_summary: no visible binding for global variable
+    'n_retained'
+  summarise_project_structure: no visible global function definition for
+    'head'
+  validate_data_types: no visible global function definition for '%>%'
+  validate_data_types: no visible global function definition for 'head'
+  withings_sleep_report: no visible global function definition for ':='
+  wsleep_sri: no visible binding for global variable 'hour'
+  wsleep_sri: no visible binding for global variable 'day_num'
+  Undefined global functions or variables:
+    %>% := above_threshold aov chisq.test day_num day_offset desc
+    event_name everything field_label fisher.test flag form_name head
+    hour kruskal.test median missing_count missing_rate missing_rate_pct
+    n_participants n_retained quantile redcap_event_name retention_rate
+    sd shapiro.test status t.test unique_event_name value wilcox.test
+    write.table
+  Consider adding
+    importFrom("stats", "aov", "chisq.test", "fisher.test", "kruskal.test",
+               "median", "quantile", "sd", "shapiro.test", "t.test",
+               "wilcox.test")
+    importFrom("utils", "head", "write.table")
+  to your NAMESPACE file.
+
+0 errors ✔ | 2 warnings ✖ | 3 notes ✖
+Error: R CMD check found WARNINGs
+Execution halted

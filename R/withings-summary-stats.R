@@ -8,7 +8,7 @@ NULL
 
 #' @rdname withings_summary_stats
 .format_hours_and_minutes <- function(decimal_hours) {
-  if (is.na(decimal_hours) || is.null(decimal_hours)) return("—")
+  if (is.na(decimal_hours) || is.null(decimal_hours)) return("\u2014")
   h <- floor(decimal_hours)
   m <- round((decimal_hours - h) * 60)
   paste0(h, "h", m)
@@ -129,7 +129,7 @@ NULL
   }
   
   mins_to_str <- function(m) {
-    if (is.na(m)) return("—")
+  if (is.na(m)) return("\u2014")
     h <- floor(m / 60) %% 24
     mn <- round(m %% 60)
     # Convert to 12-hour format with AM/PM
@@ -209,19 +209,19 @@ NULL
   tibble::tibble(
     Metric = c("AHI (events/hr)", "Snoring (min/night)", "Overnight Heart Rate (bpm)"),
     Min = c(
-      ifelse(is.na(ahi_min), "—", as.character(round(ahi_min, 1))),
-      "—",
-      ifelse(is.null(hr_min), "—", as.character(round(min(hr_min, na.rm = TRUE))))
+  ifelse(is.na(ahi_min), "\u2014", as.character(round(ahi_min, 1))),
+  "\u2014",
+  ifelse(is.null(hr_min), "\u2014", as.character(round(min(hr_min, na.rm = TRUE))))
     ),
     Avg = c(
-      ifelse(is.na(ahi_avg), "—", as.character(round(ahi_avg, 1))),
-      ifelse(is.null(snor_min), "—", as.character(round(mean(snor_min, na.rm = TRUE)))),
-      ifelse(is.null(hr_avg), "—", as.character(round(mean(hr_avg, na.rm = TRUE))))
+  ifelse(is.na(ahi_avg), "\u2014", as.character(round(ahi_avg, 1))),
+  ifelse(is.null(snor_min), "\u2014", as.character(round(mean(snor_min, na.rm = TRUE)))),
+  ifelse(is.null(hr_avg), "\u2014", as.character(round(mean(hr_avg, na.rm = TRUE))))
     ),
     Max = c(
-      ifelse(is.na(ahi_max), "—", as.character(round(ahi_max, 1))),
-      "—",
-      ifelse(is.null(hr_max), "—", as.character(round(max(hr_max, na.rm = TRUE))))
+  ifelse(is.na(ahi_max), "\u2014", as.character(round(ahi_max, 1))),
+  "\u2014",
+  ifelse(is.null(hr_max), "\u2014", as.character(round(max(hr_max, na.rm = TRUE))))
     )
   )
 }

@@ -1,0 +1,91 @@
+── Building pkgdown site for package sardine ───────────────────────────────────
+Reading from: C:/GitRepos/sardine
+Writing to: C:/GitRepos/sardine/docs
+── Sitrep ──────────────────────────────────────────────────────────────────────
+✔ URLs ok.
+✖ Favicons not ok.
+  Package logo is newer than favicons.
+  Do you need to rerun `build_favicons()`?
+✔ Open graph metadata ok.
+✔ Articles metadata ok.
+✔ Reference metadata ok.
+── Initialising site ───────────────────────────────────────────────────────────
+── Building home ───────────────────────────────────────────────────────────────
+Reading CONTRIBUTING.md
+Reading README.md
+Writing `404.html`
+── Building function reference ─────────────────────────────────────────────────
+Reading man/analyze_missing_data.Rd
+Reading man/as_datatable.Rd
+Reading man/combine_withings_epoch_summary.Rd
+Reading man/data-validation.Rd
+Reading man/dot-build_overall_table.Rd
+Reading man/dot-build_stratified_table.Rd
+Reading man/dot-detect_variable_types.Rd
+Reading man/dot-duration_efficiency_regularity.Rd
+Reading man/dot-format_p_value.Rd
+Reading man/dot-format_table_one_output.Rd
+Reading man/dot-generate_nightly_epoch_plots.Rd
+Reading man/dot-plot_epoch_line.Rd
+Reading man/dot-plot_hypnogram.Rd
+Reading man/dot-redcap_project_internal.Rd
+Reading man/dot-redcap_request.Rd
+Reading man/dot-render_horizontal_sleep_timing_plot.Rd
+Reading man/dot-sleep_ritual.Rd
+Reading man/dot-sleep_vitals.Rd
+Reading man/dot-summarize_categorical.Rd
+Reading man/dot-summarize_continuous.Rd
+Reading man/dot-test_categorical.Rd
+Reading man/dot-test_continuous.Rd
+Reading man/explore_project_shiny.Rd
+Reading man/generate_data_quality_report.Rd
+Reading man/generate_quality_report_markdown.Rd
+Reading man/generate_table_one.Rd
+Reading man/get_attrition_over_time.Rd
+Reading man/get_event_completion_summary.Rd
+Reading man/get_form_completion_status.Rd
+Reading man/get_retention_summary.Rd
+Reading man/plot_attrition_curve.Rd
+Reading man/print.attrition_over_time.Rd
+Reading man/print.data_quality_report.Rd
+Reading man/print.data_type_validation.Rd
+Reading man/print.event_completion_summary.Rd
+Reading man/print.missing_data_analysis.Rd
+Reading man/print.redcap_project.Rd
+Reading man/print.retention_summary.Rd
+Reading man/print.table_one.Rd
+Reading man/redcap_connection.Rd
+Reading man/redcap_export_arms.Rd
+Reading man/redcap_export_events.Rd
+Reading man/redcap_export_instruments.Rd
+Reading man/redcap_export_instrument_event_mappings.Rd
+Reading man/redcap_project.Rd
+Reading man/reformat.withings_sleep.Rd
+Reading man/sardine-package.Rd
+Reading man/sardine_connection.Rd
+Reading man/SRI_from_binary.Rd
+Reading man/summarise_project_structure.Rd
+Reading man/test_connection.Rd
+Reading man/test_connection.redcap_connection.Rd
+Reading man/validate_data_types.Rd
+Reading man/withings_json_to_df.Rd
+Reading man/withings_read_csv.Rd
+Reading man/withings_sleep.Rd
+Reading man/withings_sleep_report.Rd
+Reading man/withings_sleep_report_render.Rd
+Reading man/withings_summary_stats.Rd
+Reading man/wsleep_sri.Rd
+── Building articles ───────────────────────────────────────────────────────────
+Reading vignettes/redcap/01-data-extraction.Rmd
+Reading vignettes/redcap/02-data-import.Rmd
+Reading vignettes/redcap/03-report-generation.Rmd
+Reading vignettes/redcap/04-table-one-demographics.Rmd
+Reading vignettes/data-quality-validation.Rmd
+Reading vignettes/getting-started.Rmd
+── Building news ───────────────────────────────────────────────────────────────
+── Building sitemap ────────────────────────────────────────────────────────────
+── Building redirects ──────────────────────────────────────────────────────────
+── Building search index ───────────────────────────────────────────────────────
+── Checking for problems ───────────────────────────────────────────────────────
+── Finished building pkgdown site for package sardine ──────────────────────────
+── Finished building pkgdown site for package sardine ──────────────────────────

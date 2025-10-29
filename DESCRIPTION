@@ -36,7 +36,12 @@ Suggests:
     covr,
     withr,
     httptest2,
-    plotly
+    plotly,
+    DT,
+    data.table,
+    flextable,
+    gt,
+    shiny
 Config/testthat/edition: 3
 VignetteBuilder: knitr
 BuildVignettes: false

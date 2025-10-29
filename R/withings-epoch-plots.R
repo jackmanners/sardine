@@ -7,6 +7,10 @@
 #' @keywords internal
 .generate_nightly_epoch_plots <- function(sleep_id, epoch_data, summary_data) {
   if (is.null(epoch_data) || nrow(epoch_data) == 0) return(NULL)
+  # Validate sleep_id
+  if (is.null(sleep_id) || length(sleep_id) < 1 || all(is.na(sleep_id))) return(NULL)
+  # Reduce to scalar if vector provided
+  sleep_id <- sleep_id[1]
   
   # Determine which ID column to use for matching
   id_col <- NULL
@@ -17,14 +21,24 @@
     }
   }
   if (is.null(id_col)) return(NULL)
-  night_data <- epoch_data[epoch_data[[id_col]] == sleep_id, ]
+  # Guard against missing id column in epoch data
+  if (!(id_col %in% names(epoch_data))) return(NULL)
+  night_data <- epoch_data[epoch_data[[id_col]] %in% sleep_id, ]
   if (nrow(night_data) == 0) return(NULL)
   
-  # Get timezone from summary
-  summary_row <- summary_data[summary_data$id == sleep_id, ]
+  # Get timezone from summary - use same ID column detection
+  summary_id_col <- NULL
+  for (col in c("w_id", "sleep_id", "id")) {
+    if (col %in% names(summary_data)) {
+      summary_id_col <- col
+      break
+    }
+  }
+  if (is.null(summary_id_col)) return(NULL)
+  summary_row <- summary_data[summary_data[[summary_id_col]] %in% sleep_id, ]
   if (nrow(summary_row) == 0) return(NULL)
   timezone <- summary_row$timezone[1]
-  if (is.na(timezone)) timezone <- "UTC"
+   if (length(timezone) == 0 || is.na(timezone)) timezone <- "UTC"
   
   plots <- list()
   
@@ -86,6 +100,7 @@
     x = ~datetime,
     y = ~plot_y,
     type = "bar",
+    height = 200,
     marker = list(color = ~color),
     text = ~name,
     hovertemplate = "<b>%{text}</b><br>%{x|%H:%M}<extra></extra>"
@@ -100,7 +115,6 @@
         ticktext = c("Light", "Deep", "REM", "Awake"),
         range = c(0.5, 4.5)
       ),
-      height = 200,
       bargap = 0,
       showlegend = FALSE
     )
